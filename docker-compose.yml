@@ -12,6 +12,16 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.alphasupply.rule=Host(`alphasupply.int.alpha-it-innovations.org`)"
+      - "traefik.http.routers.alphasupply.entrypoints=web"
+      - "traefik.http.routers.alphasupply-secure.rule=Host(`alphasupply.int.alpha-it-innovations.org`)"
+      - "traefik.http.routers.alphasupply-secure.entrypoints=websecure"
+      - "traefik.http.routers.alphasupply-secure.tls=true"
+      - "traefik.http.services.alphasupply.loadbalancer.server.port=3000"
 
   db:
     image: postgres:16-alpine
@@ -27,6 +37,12 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - internal
 
 volumes:
   postgres-data:
+
+networks:
+  internal:
+    driver: bridge

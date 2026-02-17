@@ -49,4 +49,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-c", "echo 'Starting AlphaSupply...'; npx prisma db push --skip-generate 2>&1; echo 'Starting Next.js...'; exec node server.js"]
+CMD ["sh", "-c", "echo 'Starting AlphaSupply...'; node ./node_modules/prisma/build/index.js db push --skip-generate 2>&1; echo 'Starting Next.js...'; exec node server.js"]
