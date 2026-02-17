@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { Pencil, Recycle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,10 +28,12 @@ type ArticleRow = {
   description: string | null;
   sku: string;
   category: string;
+  isUsed: boolean;
+  productGroup: string | null;
+  productSubGroup: string | null;
   unit: string;
   currentStock: number;
   minStockLevel: number;
-  targetStockLevel: number | null;
   notes: string | null;
   _count: { serialNumbers: number; articleSuppliers: number };
 };
@@ -42,7 +44,13 @@ const categoryColors: Record<string, string> = {
   CONSUMABLE: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
 };
 
-export function ArticleListTable({ articles }: { articles: ArticleRow[] }) {
+export function ArticleListTable({
+  articles,
+  groupSuggestions,
+}: {
+  articles: ArticleRow[];
+  groupSuggestions?: { groups: string[]; subGroups: string[] };
+}) {
   const [editArticle, setEditArticle] = useState<ArticleRow | null>(null);
 
   return (
@@ -53,10 +61,10 @@ export function ArticleListTable({ articles }: { articles: ArticleRow[] }) {
             <TableRow className="border-border/50 bg-muted/30 hover:bg-muted/30">
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Art.Nr.</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Name</TableHead>
+              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Gruppe</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Kategorie</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right">Bestand</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right">Min.</TableHead>
-              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right">Lieferanten</TableHead>
               <TableHead className="py-3 w-12" />
             </TableRow>
           </TableHeader>
@@ -81,12 +89,32 @@ export function ArticleListTable({ articles }: { articles: ArticleRow[] }) {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Link
-                        href={`/inventory/${article.id}`}
-                        className="text-sm font-medium hover:text-primary transition-colors"
-                      >
-                        {article.name}
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/inventory/${article.id}`}
+                          className="text-sm font-medium hover:text-primary transition-colors"
+                        >
+                          {article.name}
+                        </Link>
+                        {article.isUsed && (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 border border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800">
+                            <Recycle className="h-2.5 w-2.5" />
+                            Gebraucht
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {article.productGroup ? (
+                        <div className="text-xs">
+                          <span className="text-foreground">{article.productGroup}</span>
+                          {article.productSubGroup && (
+                            <span className="text-muted-foreground"> / {article.productSubGroup}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">–</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold ${categoryColors[article.category] ?? ""}`}>
@@ -100,9 +128,6 @@ export function ArticleListTable({ articles }: { articles: ArticleRow[] }) {
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
                       {article.minStockLevel}
-                    </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
-                      {article._count.articleSuppliers}
                     </TableCell>
                     <TableCell>
                       <Button
@@ -132,6 +157,7 @@ export function ArticleListTable({ articles }: { articles: ArticleRow[] }) {
             <ArticleForm
               article={editArticle}
               onSuccess={() => setEditArticle(null)}
+              groupSuggestions={groupSuggestions}
             />
           )}
         </DialogContent>

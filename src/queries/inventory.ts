@@ -96,6 +96,27 @@ export async function getSuppliers() {
   });
 }
 
+export async function getArticleGroupSuggestions() {
+  const [groups, subGroups] = await Promise.all([
+    db.article.findMany({
+      where: { isActive: true, productGroup: { not: null } },
+      select: { productGroup: true },
+      distinct: ["productGroup"],
+      orderBy: { productGroup: "asc" },
+    }),
+    db.article.findMany({
+      where: { isActive: true, productSubGroup: { not: null } },
+      select: { productSubGroup: true },
+      distinct: ["productSubGroup"],
+      orderBy: { productSubGroup: "asc" },
+    }),
+  ]);
+  return {
+    groups: groups.map((g) => g.productGroup!),
+    subGroups: subGroups.map((s) => s.productSubGroup!),
+  };
+}
+
 export async function getStockArticles() {
   return db.article.findMany({
     where: {

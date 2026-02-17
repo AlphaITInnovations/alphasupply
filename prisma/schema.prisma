@@ -38,9 +38,11 @@ model Article {
   description      String?
   sku              String          @unique
   category         ArticleCategory
+  isUsed           Boolean         @default(false) // Gebraucht = wird NICHT nachbestellt
+  productGroup     String?         // z.B. "Notebook", "Monitor", "Drucker"
+  productSubGroup  String?         // z.B. "14 Zoll", "27 Zoll", "Tintenstrahl"
   unit             String          @default("Stk")
   minStockLevel    Int             @default(0)
-  targetStockLevel Int?
   currentStock     Int             @default(0)
   imageUrl         String?
   isActive         Boolean         @default(true)

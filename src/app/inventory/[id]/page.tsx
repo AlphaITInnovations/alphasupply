@@ -79,14 +79,15 @@ export default async function ArticleDetailPage({
       </div>
 
       {/* Bestandskarten */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-petrol/5 to-transparent" />
+          <CardHeader className="relative pb-2">
             <CardTitle className="text-sm font-medium">
               Aktueller Bestand
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative">
             <div className={`text-3xl font-bold ${isLowStock ? "text-destructive" : ""}`}>
               {article.currentStock} {article.unit}
             </div>
@@ -101,16 +102,6 @@ export default async function ArticleDetailPage({
           <CardContent>
             <div className="text-3xl font-bold">
               {article.minStockLevel} {article.unit}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Zielbestand</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {article.targetStockLevel ?? "–"} {article.unit}
             </div>
           </CardContent>
         </Card>

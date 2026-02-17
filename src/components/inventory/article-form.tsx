@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -15,7 +16,7 @@ import {
 import { createArticle, updateArticle } from "@/actions/inventory";
 import { articleCategoryLabels } from "@/types/inventory";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 type ArticleData = {
@@ -24,26 +25,32 @@ type ArticleData = {
   description: string | null;
   sku: string;
   category: string;
+  isUsed: boolean;
+  productGroup: string | null;
+  productSubGroup: string | null;
   unit: string;
   minStockLevel: number;
-  targetStockLevel: number | null;
   notes: string | null;
 };
 
 export function ArticleForm({
   article,
   onSuccess,
+  groupSuggestions,
 }: {
   article?: ArticleData;
   onSuccess?: () => void;
+  groupSuggestions?: { groups: string[]; subGroups: string[] };
 }) {
   const router = useRouter();
+  const [isUsed, setIsUsed] = useState(article?.isUsed ?? false);
   const action = article ? updateArticle : createArticle;
   const [state, formAction, isPending] = useActionState(
     async (_prev: { error?: string; success?: boolean } | null, formData: FormData) => {
       if (article) {
         formData.set("id", article.id);
       }
+      formData.set("isUsed", isUsed ? "true" : "false");
       return action(formData);
     },
     null
@@ -83,7 +90,7 @@ export function ArticleForm({
             id="sku"
             name="sku"
             defaultValue={article?.sku}
-            placeholder="ART-001"
+            placeholder="ART-011"
             required
             disabled={!!article}
           />
@@ -129,15 +136,57 @@ export function ArticleForm({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="targetStockLevel">Zielbestand (optional)</Label>
-        <Input
-          id="targetStockLevel"
-          name="targetStockLevel"
-          type="number"
-          min={0}
-          defaultValue={article?.targetStockLevel ?? ""}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="productGroup">Produktgruppe</Label>
+          <Input
+            id="productGroup"
+            name="productGroup"
+            defaultValue={article?.productGroup ?? ""}
+            placeholder="z.B. Notebook, Monitor, Drucker"
+            list="productGroup-suggestions"
+          />
+          {groupSuggestions && groupSuggestions.groups.length > 0 && (
+            <datalist id="productGroup-suggestions">
+              {groupSuggestions.groups.map((g) => (
+                <option key={g} value={g} />
+              ))}
+            </datalist>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="productSubGroup">Unterkategorie</Label>
+          <Input
+            id="productSubGroup"
+            name="productSubGroup"
+            defaultValue={article?.productSubGroup ?? ""}
+            placeholder="z.B. 14 Zoll, Bluetooth, USB-C"
+            list="productSubGroup-suggestions"
+          />
+          {groupSuggestions && groupSuggestions.subGroups.length > 0 && (
+            <datalist id="productSubGroup-suggestions">
+              {groupSuggestions.subGroups.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
+        <Switch
+          id="isUsed"
+          checked={isUsed}
+          onCheckedChange={setIsUsed}
         />
+        <div>
+          <Label htmlFor="isUsed" className="cursor-pointer text-sm font-medium">
+            Gebraucht
+          </Label>
+          <p className="text-[11px] text-muted-foreground">
+            Gebrauchte Artikel werden nicht nachbestellt
+          </p>
+        </div>
       </div>
 
       <div className="space-y-2">

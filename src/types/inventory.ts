@@ -28,9 +28,11 @@ export const createArticleSchema = z.object({
   description: z.string().optional(),
   sku: z.string().min(1, "Artikelnummer ist erforderlich"),
   category: z.enum(["SERIALIZED", "STANDARD", "CONSUMABLE"]),
+  isUsed: z.coerce.boolean().default(false),
+  productGroup: z.string().optional(),
+  productSubGroup: z.string().optional(),
   unit: z.string().default("Stk"),
   minStockLevel: z.coerce.number().int().min(0).default(0),
-  targetStockLevel: z.coerce.number().int().min(0).optional(),
   notes: z.string().optional(),
 });
 

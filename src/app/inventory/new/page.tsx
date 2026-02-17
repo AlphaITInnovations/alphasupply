@@ -1,7 +1,12 @@
+export const dynamic = "force-dynamic";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArticleForm } from "@/components/inventory/article-form";
+import { getArticleGroupSuggestions } from "@/queries/inventory";
 
-export default function NewArticlePage() {
+export default async function NewArticlePage() {
+  const groupSuggestions = await getArticleGroupSuggestions();
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <Card>
@@ -9,7 +14,7 @@ export default function NewArticlePage() {
           <CardTitle>Neuen Artikel anlegen</CardTitle>
         </CardHeader>
         <CardContent>
-          <ArticleForm />
+          <ArticleForm groupSuggestions={groupSuggestions} />
         </CardContent>
       </Card>
     </div>

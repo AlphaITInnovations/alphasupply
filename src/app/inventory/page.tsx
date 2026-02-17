@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getArticles } from "@/queries/inventory";
+import { getArticles, getArticleGroupSuggestions } from "@/queries/inventory";
 import { ArticleCategory } from "@/generated/prisma/client";
 import { ArticleListTable } from "@/components/inventory/article-list-table";
 
@@ -14,10 +14,13 @@ export default async function InventoryPage({
   searchParams: Promise<{ search?: string; category?: string }>;
 }) {
   const params = await searchParams;
-  const articles = await getArticles({
-    search: params.search,
-    category: params.category as ArticleCategory | undefined,
-  });
+  const [articles, groupSuggestions] = await Promise.all([
+    getArticles({
+      search: params.search,
+      category: params.category as ArticleCategory | undefined,
+    }),
+    getArticleGroupSuggestions(),
+  ]);
 
   const categoryFilters = [
     { key: undefined, label: "Alle" },
@@ -71,7 +74,7 @@ export default async function InventoryPage({
         </div>
       </div>
 
-      <ArticleListTable articles={articles} />
+      <ArticleListTable articles={articles} groupSuggestions={groupSuggestions} />
     </div>
   );
 }
