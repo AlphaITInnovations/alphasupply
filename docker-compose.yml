@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3004:3000"
+    environment:
+      - DATABASE_URL=postgresql://alphasupply:${DB_PASSWORD:-alphasupply_secret}@db:5432/alphasupply
+      - NODE_ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - alphasupply-net
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=alphasupply
+      - POSTGRES_USER=alphasupply
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-alphasupply_secret}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alphasupply"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - alphasupply-net
+
+volumes:
+  postgres-data:
+
+networks:
+  alphasupply-net:
+    driver: bridge

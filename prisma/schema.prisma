@@ -1,0 +1,171 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ───────────────────────────────────────────────
+
+enum ArticleCategory {
+  SERIALIZED  // Teure Artikel MIT Seriennummer, IMMER nachbestellen
+  STANDARD    // Artikel OHNE Seriennummer, nachbestellen pro Auftrag
+  CONSUMABLE  // Verbrauchsmaterial (Kabel etc.), nachbestellen wenn leer
+}
+
+enum StockMovementType {
+  IN         // Wareneingang
+  OUT        // Warenausgang
+  ADJUSTMENT // Inventurkorrektur
+}
+
+enum SerialNumberStatus {
+  IN_STOCK   // Verfügbar im Lager
+  RESERVED   // Reserviert für Auftrag
+  DEPLOYED   // Ausgeliefert an Endbenutzer
+  DEFECTIVE  // Defekt
+  RETURNED   // Rückläufer
+  DISPOSED   // Entsorgt
+}
+
+// ─── ARTIKEL ─────────────────────────────────────────────
+
+model Article {
+  id               String          @id @default(cuid())
+  name             String
+  description      String?
+  sku              String          @unique
+  category         ArticleCategory
+  unit             String          @default("Stk")
+  minStockLevel    Int             @default(0)
+  targetStockLevel Int?
+  currentStock     Int             @default(0)
+  imageUrl         String?
+  isActive         Boolean         @default(true)
+  notes            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serialNumbers    SerialNumber[]
+  stockMovements   StockMovement[]
+  articleSuppliers ArticleSupplier[]
+  stockLocations   StockLocation[]
+
+  @@index([category])
+  @@index([name])
+}
+
+// ─── SERIENNUMMERN ───────────────────────────────────────
+
+model SerialNumber {
+  id         String             @id @default(cuid())
+  serialNo   String             @unique
+  articleId  String
+  status     SerialNumberStatus @default(IN_STOCK)
+  notes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  article  Article            @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  location WarehouseLocation? @relation(fields: [locationId], references: [id])
+  locationId String?
+
+  @@index([articleId])
+  @@index([status])
+}
+
+// ─── LAGERORTE ───────────────────────────────────────────
+
+model WarehouseLocation {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serialNumbers  SerialNumber[]
+  stockLocations StockLocation[]
+}
+
+// ─── LAGERBESTAND PRO ORT ────────────────────────────────
+
+model StockLocation {
+  id         String @id @default(cuid())
+  articleId  String
+  locationId String
+  quantity   Int    @default(0)
+
+  article  Article           @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  location WarehouseLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, locationId])
+}
+
+// ─── LAGERBEWEGUNGEN (AUDIT LOG) ─────────────────────────
+
+model StockMovement {
+  id          String            @id @default(cuid())
+  articleId   String
+  type        StockMovementType
+  quantity    Int
+  reason      String?
+  performedBy String?
+
+  createdAt DateTime @default(now())
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ─── LIEFERANTEN ─────────────────────────────────────────
+
+model Supplier {
+  id          String  @id @default(cuid())
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  website     String?
+  notes       String?
+  isActive    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  articleSuppliers ArticleSupplier[]
+}
+
+// ─── ARTIKEL-LIEFERANTEN ZUORDNUNG ───────────────────────
+
+model ArticleSupplier {
+  id            String   @id @default(cuid())
+  articleId     String
+  supplierId    String
+  supplierSku   String?
+  unitPrice     Decimal  @db.Decimal(10, 2)
+  currency      String   @default("EUR")
+  leadTimeDays  Int?
+  minOrderQty   Int      @default(1)
+  isPreferred   Boolean  @default(false)
+  lastOrderDate DateTime?
+  notes         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  article  Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, supplierId])
+  @@index([articleId])
+  @@index([supplierId])
+}
