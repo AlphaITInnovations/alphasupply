@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ArticleForm } from "@/components/inventory/article-form";
@@ -34,7 +34,7 @@ type SerialNumberEntry = {
   isUsed: boolean;
 };
 
-export function ReceivingForm({
+export function ManualReceivingDialog({
   articles: initialArticles,
   groupSuggestions,
   nextSku,
@@ -45,6 +45,7 @@ export function ReceivingForm({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
   const [articles] = useState(initialArticles);
 
   // Form state
@@ -59,7 +60,6 @@ export function ReceivingForm({
 
   const isSerialized = selectedArticle?.category === "SERIALIZED";
 
-  // Filter articles by search
   const filteredArticles = search.trim()
     ? articles.filter(
         (a) =>
@@ -67,6 +67,15 @@ export function ReceivingForm({
           a.sku.toLowerCase().includes(search.toLowerCase())
       )
     : articles;
+
+  function resetForm() {
+    setSelectedArticle(null);
+    setSearch("");
+    setQuantity(1);
+    setReason("");
+    setPerformedBy("");
+    setSerialEntries([]);
+  }
 
   function handleSelectArticle(article: Article) {
     setSelectedArticle(article);
@@ -142,15 +151,9 @@ export function ReceivingForm({
       });
 
       if (result.success) {
-        toast.success(
-          `${quantity}x ${selectedArticle.name} eingebucht`
-        );
-        // Reset form
-        setSelectedArticle(null);
-        setQuantity(1);
-        setReason("");
-        setPerformedBy("");
-        setSerialEntries([]);
+        toast.success(`${quantity}x ${selectedArticle.name} eingebucht`);
+        resetForm();
+        setOpen(false);
         router.refresh();
       } else {
         toast.error(result.error ?? "Fehler beim Wareneingang.");
@@ -159,242 +162,261 @@ export function ReceivingForm({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Artikel wählen */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Artikel auswählen</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowNewArticleDialog(true)}
-            >
-              <Plus className="mr-2 h-3.5 w-3.5" />
-              Neuer Artikel
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {selectedArticle ? (
-            <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <PackagePlus className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{selectedArticle.name}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {selectedArticle.sku}
-                    </span>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                      {articleCategoryLabels[selectedArticle.category]}
-                    </Badge>
-                  </div>
-                </div>
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) resetForm();
+        }}
+      >
+        <DialogTrigger asChild>
+          <Button>
+            <PackagePlus className="mr-2 h-4 w-4" />
+            Manueller Wareneingang
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manueller Wareneingang</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-5 pt-2">
+            {/* Artikel wählen */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Artikel *</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setShowNewArticleDialog(true)}
+                >
+                  <Plus className="mr-1 h-3 w-3" />
+                  Neuer Artikel
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSelectedArticle(null);
-                  setSerialEntries([]);
-                }}
-              >
-                Ändern
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Artikel suchen (Name oder Artikelnummer)..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
-                  autoFocus
-                />
-              </div>
-              <div className="max-h-64 overflow-y-auto rounded-lg border divide-y">
-                {filteredArticles.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                    Kein Artikel gefunden.
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="ml-1"
-                      onClick={() => setShowNewArticleDialog(true)}
-                    >
-                      Neuen anlegen?
-                    </Button>
-                  </div>
-                ) : (
-                  filteredArticles.map((article) => (
-                    <button
-                      key={article.id}
-                      type="button"
-                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-muted/50 transition-colors"
-                      onClick={() => handleSelectArticle(article)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {article.name}
-                        </p>
-                        <p className="font-mono text-xs text-muted-foreground">
-                          {article.sku}
-                        </p>
+
+              {selectedArticle ? (
+                <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                      <PackagePlus className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{selectedArticle.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {selectedArticle.sku}
+                        </span>
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {articleCategoryLabels[selectedArticle.category]}
+                        </Badge>
                       </div>
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
-                        {articleCategoryLabels[article.category]}
-                      </Badge>
-                    </button>
-                  ))
-                )}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Menge & Details - nur wenn Artikel gewählt */}
-      {selectedArticle && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Eingangsdetails</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Menge *</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min={1}
-                  value={quantity}
-                  onChange={(e) => handleQuantityChange(Math.max(1, parseInt(e.target.value) || 1))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="reason">Grund</Label>
-                <Input
-                  id="reason"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="z.B. Nachlieferung, Bestellung #123"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="performedBy">Durchgeführt von</Label>
-                <Input
-                  id="performedBy"
-                  value={performedBy}
-                  onChange={(e) => setPerformedBy(e.target.value)}
-                  placeholder="Name"
-                />
-              </div>
-            </div>
-
-            {/* Seriennummern-Erfassung (nur SERIALIZED) */}
-            {isSerialized && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-semibold">
-                    Seriennummern ({serialEntries.length})
-                  </Label>
+                    </div>
+                  </div>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
+                    className="h-7 text-xs"
                     onClick={() => {
-                      const newQty = quantity + 1;
-                      setQuantity(newQty);
-                      setSerialEntries((prev) => [
-                        ...prev,
-                        { key: keyCounter, serialNo: "", isUsed: false },
-                      ]);
-                      setKeyCounter((k) => k + 1);
+                      setSelectedArticle(null);
+                      setSerialEntries([]);
                     }}
                   >
-                    <Plus className="mr-1.5 h-3.5 w-3.5" />
-                    Weitere
+                    Ändern
                   </Button>
                 </div>
-                <div className="space-y-2">
-                  {serialEntries.map((entry, idx) => (
-                    <div
-                      key={entry.key}
-                      className="flex items-center gap-3 rounded-lg border bg-muted/20 p-3"
-                    >
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
-                        {idx + 1}
-                      </span>
-                      <Input
-                        placeholder="Seriennummer eingeben..."
-                        value={entry.serialNo}
-                        onChange={(e) =>
-                          updateSerialEntry(idx, "serialNo", e.target.value)
-                        }
-                        className="flex-1 font-mono"
-                      />
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Switch
-                          checked={entry.isUsed}
-                          onCheckedChange={(checked) =>
-                            updateSerialEntry(idx, "isUsed", checked)
-                          }
-                        />
-                        <span className={`text-xs font-medium ${entry.isUsed ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}`}>
-                          {entry.isUsed ? (
-                            <span className="inline-flex items-center gap-1">
-                              <Recycle className="h-3 w-3" />
-                              Gebraucht
-                            </span>
-                          ) : (
-                            "Neu"
-                          )}
-                        </span>
-                      </div>
-                      {serialEntries.length > 1 && (
+              ) : (
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Artikel suchen (Name oder Art.Nr.)..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-9"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto rounded-lg border divide-y">
+                    {filteredArticles.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                        Kein Artikel gefunden.
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                          onClick={() => {
-                            setSerialEntries((prev) =>
-                              prev.filter((_, i) => i !== idx)
-                            );
-                            setQuantity((q) => Math.max(1, q - 1));
-                          }}
+                          variant="link"
+                          size="sm"
+                          className="ml-1"
+                          onClick={() => setShowNewArticleDialog(true)}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          Neuen anlegen?
                         </Button>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    ) : (
+                      filteredArticles.map((article) => (
+                        <button
+                          key={article.id}
+                          type="button"
+                          className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-muted/50 transition-colors"
+                          onClick={() => handleSelectArticle(article)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{article.name}</p>
+                            <p className="font-mono text-xs text-muted-foreground">{article.sku}</p>
+                          </div>
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                            {articleCategoryLabels[article.category]}
+                          </Badge>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Menge & Details */}
+            {selectedArticle && (
+              <>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Menge *</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min={1}
+                      value={quantity}
+                      onChange={(e) =>
+                        handleQuantityChange(Math.max(1, parseInt(e.target.value) || 1))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reason">Grund</Label>
+                    <Input
+                      id="reason"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder="z.B. Nachlieferung"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="performedBy">Durchgeführt von</Label>
+                    <Input
+                      id="performedBy"
+                      value={performedBy}
+                      onChange={(e) => setPerformedBy(e.target.value)}
+                      placeholder="Name"
+                    />
+                  </div>
                 </div>
-              </div>
+
+                {/* Seriennummern */}
+                {isSerialized && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-semibold">
+                        Seriennummern ({serialEntries.length})
+                      </Label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          const newQty = quantity + 1;
+                          setQuantity(newQty);
+                          setSerialEntries((prev) => [
+                            ...prev,
+                            { key: keyCounter, serialNo: "", isUsed: false },
+                          ]);
+                          setKeyCounter((k) => k + 1);
+                        }}
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Weitere
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {serialEntries.map((entry, idx) => (
+                        <div
+                          key={entry.key}
+                          className="flex items-center gap-2 rounded-lg border bg-muted/20 p-2.5"
+                        >
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary shrink-0">
+                            {idx + 1}
+                          </span>
+                          <Input
+                            placeholder="Seriennummer..."
+                            value={entry.serialNo}
+                            onChange={(e) =>
+                              updateSerialEntry(idx, "serialNo", e.target.value)
+                            }
+                            className="flex-1 font-mono h-8 text-sm"
+                          />
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Switch
+                              checked={entry.isUsed}
+                              onCheckedChange={(checked) =>
+                                updateSerialEntry(idx, "isUsed", checked)
+                              }
+                            />
+                            <span
+                              className={`text-[11px] font-medium w-[72px] ${
+                                entry.isUsed
+                                  ? "text-orange-600 dark:text-orange-400"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {entry.isUsed ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <Recycle className="h-3 w-3" />
+                                  Gebraucht
+                                </span>
+                              ) : (
+                                "Neu"
+                              )}
+                            </span>
+                          </div>
+                          {serialEntries.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                setSerialEntries((prev) =>
+                                  prev.filter((_, i) => i !== idx)
+                                );
+                                setQuantity((q) => Math.max(1, q - 1));
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Submit */}
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={handleSubmit}
+                  disabled={isPending}
+                >
+                  <PackagePlus className="mr-2 h-4 w-4" />
+                  {isPending
+                    ? "Wird eingebucht..."
+                    : `${quantity}x ${selectedArticle.name} einbuchen`}
+                </Button>
+              </>
             )}
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {/* Submit Button */}
-      {selectedArticle && (
-        <Button
-          size="lg"
-          className="w-full"
-          onClick={handleSubmit}
-          disabled={isPending}
-        >
-          <PackagePlus className="mr-2 h-5 w-5" />
-          {isPending
-            ? "Wird eingebucht..."
-            : `${quantity}x ${selectedArticle.name} einbuchen`}
-        </Button>
-      )}
-
-      {/* Dialog: Neuer Artikel anlegen */}
+      {/* Nested dialog: Neuer Artikel */}
       <Dialog open={showNewArticleDialog} onOpenChange={setShowNewArticleDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -410,6 +432,6 @@ export function ReceivingForm({
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
