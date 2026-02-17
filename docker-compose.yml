@@ -12,8 +12,6 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
-    networks:
-      - alphasupply-net
 
   db:
     image: postgres:16-alpine
@@ -29,12 +27,6 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    networks:
-      - alphasupply-net
 
 volumes:
   postgres-data:
-
-networks:
-  alphasupply-net:
-    driver: bridge
