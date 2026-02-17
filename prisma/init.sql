@@ -146,3 +146,10 @@ ALTER TABLE "StockMovement" ADD CONSTRAINT "StockMovement_articleId_fkey" FOREIG
 
 ALTER TABLE "ArticleSupplier" ADD CONSTRAINT "ArticleSupplier_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ArticleSupplier" ADD CONSTRAINT "ArticleSupplier_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Seed: Dummy-Lieferanten
+INSERT INTO "Supplier" ("id", "name", "contactName", "email", "phone", "website", "notes", "isActive", "createdAt", "updatedAt") VALUES
+  ('sup-telekom', 'Deutsche Telekom', 'Kundenservice Business', 'business@telekom.de', '+49 800 330 1300', 'https://geschaeftskunden.telekom.de', 'Mobilfunk, Festnetz, IT-Infrastruktur', true, NOW(), NOW()),
+  ('sup-galaxus', 'Galaxus Deutschland', 'B2B Vertrieb', 'b2b@galaxus.de', '+49 89 2000 889 0', 'https://www.galaxus.de', 'IT-Hardware, Peripherie, Zubehoer', true, NOW(), NOW()),
+  ('sup-amazon', 'Amazon Business', 'Amazon Business Support', 'support@amazon.de', NULL, 'https://business.amazon.de', 'Verbrauchsmaterial, Bueroartikel, diverse IT-Artikel', true, NOW(), NOW())
+ON CONFLICT DO NOTHING;

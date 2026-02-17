@@ -86,11 +86,18 @@ export function Sidebar() {
       >
         {/* Logo */}
         <div className="flex h-14 items-center border-b border-sidebar-border px-4">
-          <Link href="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
-            <Package className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold text-sidebar-foreground">
-              AlphaSupply
-            </span>
+          <Link href="/" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <Package className="h-4.5 w-4.5 text-primary-foreground" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold leading-tight text-sidebar-foreground">
+                AlphaSupply
+              </span>
+              <span className="text-[10px] leading-tight text-muted-foreground">
+                Lagerverwaltung
+              </span>
+            </div>
           </Link>
         </div>
 
@@ -99,8 +106,8 @@ export function Sidebar() {
           {navigation.map((item) => {
             if ("items" in item && item.items) {
               return (
-                <div key={item.name} className="space-y-1">
-                  <p className="px-3 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <div key={item.name} className="space-y-0.5">
+                  <p className="px-3 pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     {item.name}
                   </p>
                   {item.items.map((subItem) => {
@@ -111,9 +118,9 @@ export function Sidebar() {
                         href={subItem.href}
                         onClick={() => setMobileOpen(false)}
                         className={cn(
-                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
                           isActive
-                            ? "bg-sidebar-accent text-sidebar-primary"
+                            ? "bg-primary text-primary-foreground shadow-sm"
                             : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         )}
                       >
@@ -133,11 +140,13 @@ export function Sidebar() {
               return (
                 <div
                   key={item.name}
-                  className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground/50 cursor-not-allowed"
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground/40 cursor-not-allowed"
                 >
                   <Icon className="h-4 w-4" />
                   {item.name}
-                  <span className="ml-auto text-[10px] uppercase">Demnächst</span>
+                  <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-[9px] font-semibold uppercase">
+                    Bald
+                  </span>
                 </div>
               );
             }
@@ -148,9 +157,9 @@ export function Sidebar() {
                 href={item.href!}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
                   isActive
-                    ? "bg-sidebar-accent text-sidebar-primary"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 )}
               >
@@ -162,8 +171,10 @@ export function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-sidebar-border p-3 text-center text-xs text-muted-foreground">
-          Alpha IT Innovations
+        <div className="border-t border-sidebar-border p-4">
+          <p className="text-center text-[11px] font-medium text-muted-foreground">
+            Alpha IT Innovations GmbH
+          </p>
         </div>
       </aside>
     </>

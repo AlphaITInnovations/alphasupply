@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AlphaSupply - Lagerverwaltung",
-  description: "Interne IT Lager- und Bestellverwaltung - Alpha IT Innovations",
+  description: "Interne IT Lager- und Bestellverwaltung - Alpha IT Innovations GmbH",
 };
 
 export default function RootLayout({

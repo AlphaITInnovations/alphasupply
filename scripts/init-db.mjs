@@ -13,11 +13,17 @@ async function main() {
   );
 
   if (res.rows[0].exists) {
-    console.log("DB schema already exists, skipping init.");
+    console.log("DB schema already exists.");
+    // Still run seed data (ON CONFLICT DO NOTHING keeps it safe)
+    const seedMatch = sql.match(/-- Seed:[\s\S]*/);
+    if (seedMatch) {
+      await client.query(seedMatch[0]);
+      console.log("Seed data checked.");
+    }
   } else {
     console.log("Creating DB schema...");
     await client.query(sql);
-    console.log("DB schema created successfully.");
+    console.log("DB schema + seed data created.");
   }
 
   await client.end();
