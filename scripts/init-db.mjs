@@ -53,7 +53,41 @@ async function runMigrations(client) {
     console.log("Migration: Added productGroup/productSubGroup columns.");
   }
 
-  // Migration 3: Drop targetStockLevel if it exists (no longer used)
+  // Migration 3: Rename SKUs to ART-XXX format
+  const hasOldSku = await client.query(
+    `SELECT EXISTS (SELECT 1 FROM "Article" WHERE "sku" NOT LIKE 'ART-%' LIMIT 1)`
+  );
+  if (hasOldSku.rows[0].exists) {
+    // Assign ART-001, ART-002, ... in name order
+    await client.query(`
+      WITH numbered AS (
+        SELECT "id", ROW_NUMBER() OVER (ORDER BY "name") AS rn
+        FROM "Article"
+        WHERE "sku" NOT LIKE 'ART-%'
+      )
+      UPDATE "Article" a
+      SET "sku" = 'ART-' || LPAD(n.rn::text, 3, '0')
+      FROM numbered n
+      WHERE a."id" = n."id"
+    `);
+    console.log("Migration: Renamed SKUs to ART-XXX format.");
+  }
+
+  // Migration 4: Update productGroup/productSubGroup for seed articles
+  await client.query(`
+    UPDATE "Article" SET "productGroup" = 'Headset', "productSubGroup" = 'Bluetooth' WHERE "id" = 'art-jabra-ev2-65' AND "productGroup" IS NULL;
+    UPDATE "Article" SET "productGroup" = 'Zubehör', "productSubGroup" = 'Taschen' WHERE "id" = 'art-lenovo-t210' AND "productGroup" IS NULL;
+    UPDATE "Article" SET "productGroup" = 'Peripherie', "productSubGroup" = 'Tastatur-Maus' WHERE "id" = 'art-dell-km5221w' AND "productGroup" IS NULL;
+    UPDATE "Article" SET "productGroup" = 'Telefon', "productSubGroup" = 'IP-Telefon' WHERE "id" = 'art-yealink-t54w' AND "productGroup" IS NULL;
+    UPDATE "Article" SET "productGroup" = 'PC', "productSubGroup" = 'Mini-PC' WHERE "id" = 'art-lenovo-neo50q' AND "productGroup" IS NULL;
+    UPDATE "Article" SET "productGroup" = 'Notebook', "productSubGroup" = '14 Zoll' WHERE "id" = 'art-lenovo-tb14-g7' AND "productGroup" IS NULL;
+    UPDATE "Article" SET "productGroup" = 'Notebook', "productSubGroup" = '16 Zoll' WHERE "id" = 'art-lenovo-tb16-g7' AND "productGroup" IS NULL;
+    UPDATE "Article" SET "productGroup" = 'Monitor', "productSubGroup" = '27 Zoll' WHERE "id" = 'art-iiyama-xub2792' AND "productGroup" IS NULL;
+    UPDATE "Article" SET "productGroup" = 'Drucker', "productSubGroup" = 'Tintenstrahl' WHERE "id" = 'art-brother-j1800dw' AND "productGroup" IS NULL;
+    UPDATE "Article" SET "productGroup" = 'Dockingstation', "productSubGroup" = 'USB-C' WHERE "id" = 'art-lenovo-usbc-dock' AND "productGroup" IS NULL;
+  `);
+
+  // Migration 5: Drop targetStockLevel if it exists (no longer used)
   const hasTarget = await client.query(
     `SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'Article' AND column_name = 'targetStockLevel')`
   );
