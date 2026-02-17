@@ -12,8 +12,6 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
-    networks:
-      - internal
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.alphasupply.rule=Host(`alphasupply.int.alpha-it-innovations.org`)"
@@ -30,19 +28,14 @@ services:
       - POSTGRES_USER=alphasupply
       - POSTGRES_PASSWORD=${DB_PASSWORD:-alphasupply_secret}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - alphasupply-pgdata:/var/lib/postgresql/data
+      - ./prisma/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U alphasupply"]
       interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    networks:
-      - internal
 
 volumes:
-  postgres-data:
-
-networks:
-  internal:
-    driver: bridge
+  alphasupply-pgdata:
