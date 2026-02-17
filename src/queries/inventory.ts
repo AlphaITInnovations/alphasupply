@@ -162,19 +162,20 @@ export async function getArticlesForReceiving() {
 }
 
 export async function getDashboardStats() {
+  const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
   const [
-    totalArticles,
     lowStockArticles,
     recentMovements,
-    totalSerialNumbers,
     openOrders,
     techPendingOrders,
     procPendingOrders,
+    incomingArticles,
   ] = await Promise.all([
-    db.article.count({ where: { isActive: true } }),
     db.article.findMany({
       where: {
         isActive: true,
+        minStockLevel: { gt: 0 },
         currentStock: { lte: db.article.fields.minStockLevel },
       },
       select: {
@@ -187,14 +188,14 @@ export async function getDashboardStats() {
       },
       orderBy: { currentStock: "asc" },
     }),
+    // Last 48h movements for scrollable log
     db.stockMovement.findMany({
+      where: { createdAt: { gte: since48h } },
       include: {
         article: { select: { name: true, sku: true } },
       },
       orderBy: { createdAt: "desc" },
-      take: 8,
     }),
-    db.serialNumber.count({ where: { status: "IN_STOCK" } }),
     // Open orders (NEW or IN_PROGRESS)
     db.order.count({ where: { status: { in: ["NEW", "IN_PROGRESS"] } } }),
     // Orders needing technician work (not yet techDoneAt)
@@ -214,15 +215,18 @@ export async function getDashboardStats() {
         ],
       },
     }),
+    // Articles with incoming stock (ordered, awaiting delivery)
+    db.article.count({
+      where: { isActive: true, incomingStock: { gt: 0 } },
+    }),
   ]);
 
   return {
-    totalArticles,
     lowStockArticles,
     recentMovements,
-    totalSerialNumbers,
     openOrders,
     techPendingOrders,
     procPendingOrders,
+    incomingArticles,
   };
 }

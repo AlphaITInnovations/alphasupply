@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Wrench,
   ShoppingCart,
+  PackageCheck,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,14 +22,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Statistik-Karten */}
+      {/* KPI-Karten */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/orders" className="block">
           <Card className="relative overflow-hidden transition-all hover:shadow-md hover:border-primary/30">
             <div className="absolute inset-0 bg-gradient-to-br from-petrol/5 to-transparent" />
             <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Offene Aufträge
+                Offene Auftr&auml;ge
               </CardTitle>
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-petrol/10">
                 <ClipboardList className="h-4 w-4 text-petrol" />
@@ -36,7 +37,27 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent className="relative">
               <div className="text-3xl font-bold tracking-tight">{stats.openOrders}</div>
-              <p className="mt-1 text-xs text-muted-foreground">Aufträge in Bearbeitung</p>
+              <p className="mt-1 text-xs text-muted-foreground">NEW / IN_PROGRESS</p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/procurement" className="block">
+          <Card className="relative overflow-hidden transition-all hover:shadow-md hover:border-primary/30">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent" />
+            <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Bestellwesen
+              </CardTitle>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
+                <ShoppingCart className="h-4 w-4 text-amber-500" />
+              </div>
+            </CardHeader>
+            <CardContent className="relative">
+              <div className="text-3xl font-bold tracking-tight text-amber-600 dark:text-amber-400">
+                {stats.procPendingOrders}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">M&uuml;ssen bestellt werden</p>
             </CardContent>
           </Card>
         </Link>
@@ -61,42 +82,22 @@ export default async function DashboardPage() {
           </Card>
         </Link>
 
-        <Link href="/procurement" className="block">
+        <Link href="/inventory/receiving" className="block">
           <Card className="relative overflow-hidden transition-all hover:shadow-md hover:border-primary/30">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent" />
             <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Bestellwesen
+                Zulauf
               </CardTitle>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
-                <ShoppingCart className="h-4 w-4 text-amber-500" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10">
+                <PackageCheck className="h-4 w-4 text-violet-500" />
               </div>
             </CardHeader>
             <CardContent className="relative">
-              <div className="text-3xl font-bold tracking-tight text-amber-600 dark:text-amber-400">
-                {stats.procPendingOrders}
+              <div className="text-3xl font-bold tracking-tight text-violet-600 dark:text-violet-400">
+                {stats.incomingArticles}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">Offene Bestellungen</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/inventory/stock" className="block">
-          <Card className="relative overflow-hidden transition-all hover:shadow-md hover:border-primary/30">
-            <div className="absolute inset-0 bg-gradient-to-br from-destructive/5 to-transparent" />
-            <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Niedrigbestand
-              </CardTitle>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-destructive/10">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-              </div>
-            </CardHeader>
-            <CardContent className="relative">
-              <div className="text-3xl font-bold tracking-tight text-destructive">
-                {stats.lowStockArticles.length}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">Unter Mindestbestand</p>
+              <p className="mt-1 text-xs text-muted-foreground">Artikel im Wareneingang</p>
             </CardContent>
           </Card>
         </Link>
@@ -112,6 +113,11 @@ export default async function DashboardPage() {
                   <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
                 </div>
                 Niedrigbestand
+                {stats.lowStockArticles.length > 0 && (
+                  <Badge variant="destructive" className="text-[10px]">
+                    {stats.lowStockArticles.length}
+                  </Badge>
+                )}
               </CardTitle>
               <Link href="/inventory/stock" className="text-xs font-medium text-primary hover:underline">
                 Alle anzeigen
@@ -124,7 +130,7 @@ export default async function DashboardPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
                   <TrendingUp className="h-6 w-6 text-success" />
                 </div>
-                <p className="mt-3 text-sm font-medium">Alles im grünen Bereich</p>
+                <p className="mt-3 text-sm font-medium">Alles im gr&uuml;nen Bereich</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Alle Artikel haben ausreichend Bestand.
                 </p>
@@ -170,34 +176,35 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Aktivitäts-Log */}
-        <Card>
+        {/* Aktivitaets-Log (letzte 48h, scrollbar) */}
+        <Card className="flex flex-col">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-petrol/10">
                   <ArrowLeftRight className="h-3.5 w-3.5 text-petrol" />
                 </div>
-                Aktivitäts-Log
+                Aktivit&auml;ts-Log
+                <span className="text-xs font-normal text-muted-foreground">48 h</span>
               </CardTitle>
               <Link href="/inventory/movements" className="text-xs font-medium text-primary hover:underline">
                 Alle anzeigen
               </Link>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 min-h-0">
             {stats.recentMovements.length === 0 ? (
               <div className="flex flex-col items-center py-8 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                   <ArrowLeftRight className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <p className="mt-3 text-sm font-medium">Keine Aktivitäten</p>
+                <p className="mt-3 text-sm font-medium">Keine Aktivit&auml;ten</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Noch keine Lagerbewegungen vorhanden.
+                  Keine Lagerbewegungen in den letzten 48 Stunden.
                 </p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="max-h-[400px] overflow-y-auto space-y-2 pr-1">
                 {stats.recentMovements.map((movement) => (
                   <div
                     key={movement.id}
@@ -224,7 +231,7 @@ export default async function DashboardPage() {
                       </p>
                       <p className="text-[11px] text-muted-foreground">
                         {movement.reason ?? "Keine Angabe"}
-                        {movement.performedBy && ` · ${movement.performedBy}`}
+                        {movement.performedBy && ` \u00b7 ${movement.performedBy}`}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
@@ -239,7 +246,12 @@ export default async function DashboardPage() {
                         {Math.abs(movement.quantity)}
                       </span>
                       <p className="mt-0.5 text-[10px] text-muted-foreground">
-                        {new Date(movement.createdAt).toLocaleDateString("de-DE")}
+                        {new Date(movement.createdAt).toLocaleString("de-DE", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
                     </div>
                   </div>
