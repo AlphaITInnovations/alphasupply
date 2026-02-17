@@ -14,6 +14,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Dummy DATABASE_URL so prisma generate and next build succeed.
+# The real URL is injected at runtime via docker-compose.
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
+
 RUN npx prisma generate
 RUN npm run build
 
@@ -29,11 +33,15 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Prisma: schema + migrations for migrate deploy at startup
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# dotenv is required by prisma.config.ts
+COPY --from=builder /app/node_modules/dotenv ./node_modules/dotenv
 
 USER nextjs
 
