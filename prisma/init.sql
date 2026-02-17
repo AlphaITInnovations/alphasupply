@@ -23,6 +23,7 @@ CREATE TABLE "Article" (
     "unit" TEXT NOT NULL DEFAULT 'Stk',
     "minStockLevel" INTEGER NOT NULL DEFAULT 0,
     "currentStock" INTEGER NOT NULL DEFAULT 0,
+    "incomingStock" INTEGER NOT NULL DEFAULT 0,
     "imageUrl" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "notes" TEXT,
@@ -153,7 +154,10 @@ CREATE TABLE "Order" (
     "orderedFor" TEXT NOT NULL,
     "costCenter" TEXT NOT NULL,
     "deliveryMethod" "DeliveryMethod" NOT NULL,
-    "shippingAddress" TEXT,
+    "shippingCompany" TEXT,
+    "shippingStreet" TEXT,
+    "shippingZip" TEXT,
+    "shippingCity" TEXT,
     "pickupBy" TEXT,
     "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -166,7 +170,8 @@ CREATE TABLE "Order" (
 CREATE TABLE "OrderItem" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
-    "articleId" TEXT NOT NULL,
+    "articleId" TEXT,
+    "freeText" TEXT,
     "quantity" INTEGER NOT NULL,
 
     CONSTRAINT "OrderItem_pkey" PRIMARY KEY ("id")
@@ -177,7 +182,6 @@ CREATE UNIQUE INDEX "Order_orderNumber_key" ON "Order"("orderNumber");
 CREATE INDEX "Order_status_idx" ON "Order"("status");
 CREATE INDEX "Order_createdAt_idx" ON "Order"("createdAt");
 
-CREATE UNIQUE INDEX "OrderItem_orderId_articleId_key" ON "OrderItem"("orderId", "articleId");
 CREATE INDEX "OrderItem_orderId_idx" ON "OrderItem"("orderId");
 
 -- AddForeignKey
@@ -192,7 +196,6 @@ ALTER TABLE "StockMovement" ADD CONSTRAINT "StockMovement_articleId_fkey" FOREIG
 ALTER TABLE "ArticleSupplier" ADD CONSTRAINT "ArticleSupplier_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ArticleSupplier" ADD CONSTRAINT "ArticleSupplier_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
-ALTER TABLE "Order" ADD CONSTRAINT "Order_pkey_check" CHECK (true);
 ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON UPDATE CASCADE;
 

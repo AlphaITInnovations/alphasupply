@@ -152,7 +152,10 @@ async function runMigrations(client) {
         "orderedFor" TEXT NOT NULL,
         "costCenter" TEXT NOT NULL,
         "deliveryMethod" "DeliveryMethod" NOT NULL,
-        "shippingAddress" TEXT,
+        "shippingCompany" TEXT,
+        "shippingStreet" TEXT,
+        "shippingZip" TEXT,
+        "shippingCity" TEXT,
         "pickupBy" TEXT,
         "notes" TEXT,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -166,16 +169,54 @@ async function runMigrations(client) {
       CREATE TABLE "OrderItem" (
         "id" TEXT NOT NULL,
         "orderId" TEXT NOT NULL,
-        "articleId" TEXT NOT NULL,
+        "articleId" TEXT,
+        "freeText" TEXT,
         "quantity" INTEGER NOT NULL,
         CONSTRAINT "OrderItem_pkey" PRIMARY KEY ("id")
       );
-      CREATE UNIQUE INDEX "OrderItem_orderId_articleId_key" ON "OrderItem"("orderId", "articleId");
       CREATE INDEX "OrderItem_orderId_idx" ON "OrderItem"("orderId");
       ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
       ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON UPDATE CASCADE;
     `);
     console.log("Migration: Created Order + OrderItem tables.");
+  }
+
+  // Migration 10: Structured shipping address, free text order items, incomingStock
+  const hasShippingCompany = await client.query(
+    `SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'Order' AND column_name = 'shippingCompany')`
+  );
+  if (!hasShippingCompany.rows[0].exists) {
+    // Replace shippingAddress with structured fields
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "shippingCompany" TEXT`);
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "shippingStreet" TEXT`);
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "shippingZip" TEXT`);
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "shippingCity" TEXT`);
+    // Migrate existing data: put old shippingAddress into shippingStreet
+    await client.query(`UPDATE "Order" SET "shippingStreet" = "shippingAddress" WHERE "shippingAddress" IS NOT NULL`);
+    await client.query(`ALTER TABLE "Order" DROP COLUMN IF EXISTS "shippingAddress"`);
+    console.log("Migration: Structured shipping address on Order.");
+  }
+
+  // Add freeText column to OrderItem
+  const hasFreeText = await client.query(
+    `SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'OrderItem' AND column_name = 'freeText')`
+  );
+  if (!hasFreeText.rows[0].exists) {
+    await client.query(`ALTER TABLE "OrderItem" ADD COLUMN "freeText" TEXT`);
+    // Make articleId nullable
+    await client.query(`ALTER TABLE "OrderItem" ALTER COLUMN "articleId" DROP NOT NULL`);
+    // Drop the unique constraint on (orderId, articleId) if it exists
+    await client.query(`DROP INDEX IF EXISTS "OrderItem_orderId_articleId_key"`);
+    console.log("Migration: Added freeText to OrderItem, made articleId nullable.");
+  }
+
+  // Add incomingStock to Article
+  const hasIncomingStock = await client.query(
+    `SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'Article' AND column_name = 'incomingStock')`
+  );
+  if (!hasIncomingStock.rows[0].exists) {
+    await client.query(`ALTER TABLE "Article" ADD COLUMN "incomingStock" INTEGER NOT NULL DEFAULT 0`);
+    console.log("Migration: Added incomingStock to Article.");
   }
 }
 

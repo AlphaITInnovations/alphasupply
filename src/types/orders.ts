@@ -26,11 +26,15 @@ export const createOrderSchema = z.object({
   orderedFor: z.string().min(1, "Empfänger ist erforderlich"),
   costCenter: z.string().min(1, "Kostenstelle ist erforderlich"),
   deliveryMethod: z.enum(["SHIPPING", "PICKUP"]),
-  shippingAddress: z.string().optional(),
+  shippingCompany: z.string().optional(),
+  shippingStreet: z.string().optional(),
+  shippingZip: z.string().optional(),
+  shippingCity: z.string().optional(),
   pickupBy: z.string().optional(),
   notes: z.string().optional(),
   items: z.array(z.object({
-    articleId: z.string().min(1),
+    articleId: z.string().optional(), // Null bei Freitext
+    freeText: z.string().optional(),  // Freitext-Beschreibung
     quantity: z.number().int().min(1),
   })).min(1, "Mindestens ein Artikel ist erforderlich"),
 });

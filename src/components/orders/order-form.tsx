@@ -9,6 +9,7 @@ import {
   Send,
   UserCheck,
   PackageCheck,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,10 +31,9 @@ type Article = {
   unit: string;
 };
 
-type OrderItemEntry = {
-  article: Article;
-  quantity: number;
-};
+type OrderItemEntry =
+  | { type: "article"; article: Article; quantity: number }
+  | { type: "freetext"; text: string; quantity: number };
 
 export function OrderForm({ articles }: { articles: Article[] }) {
   const router = useRouter();
@@ -44,7 +44,10 @@ export function OrderForm({ articles }: { articles: Article[] }) {
   const [orderedFor, setOrderedFor] = useState("");
   const [costCenter, setCostCenter] = useState("");
   const [isShipping, setIsShipping] = useState(false);
-  const [shippingAddress, setShippingAddress] = useState("");
+  const [shippingCompany, setShippingCompany] = useState("");
+  const [shippingStreet, setShippingStreet] = useState("");
+  const [shippingZip, setShippingZip] = useState("");
+  const [shippingCity, setShippingCity] = useState("");
   const [pickupBy, setPickupBy] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -52,8 +55,12 @@ export function OrderForm({ articles }: { articles: Article[] }) {
   const [orderItems, setOrderItems] = useState<OrderItemEntry[]>([]);
   const [articleSearch, setArticleSearch] = useState("");
   const [showArticleList, setShowArticleList] = useState(false);
+  const [freeTextInput, setFreeTextInput] = useState("");
+  const [showFreeText, setShowFreeText] = useState(false);
 
-  const selectedIds = new Set(orderItems.map((i) => i.article.id));
+  const selectedIds = new Set(
+    orderItems.filter((i) => i.type === "article").map((i) => i.article.id)
+  );
 
   const filteredArticles = articleSearch.trim()
     ? articles.filter(
@@ -65,12 +72,19 @@ export function OrderForm({ articles }: { articles: Article[] }) {
     : articles.filter((a) => !selectedIds.has(a.id));
 
   function addArticle(article: Article) {
-    setOrderItems((prev) => [...prev, { article, quantity: 1 }]);
+    setOrderItems((prev) => [...prev, { type: "article", article, quantity: 1 }]);
     setArticleSearch("");
     setShowArticleList(false);
   }
 
-  function removeArticle(index: number) {
+  function addFreeText() {
+    if (!freeTextInput.trim()) return;
+    setOrderItems((prev) => [...prev, { type: "freetext", text: freeTextInput.trim(), quantity: 1 }]);
+    setFreeTextInput("");
+    setShowFreeText(false);
+  }
+
+  function removeItem(index: number) {
     setOrderItems((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -95,8 +109,16 @@ export function OrderForm({ articles }: { articles: Article[] }) {
       toast.error("Kostenstelle ist erforderlich.");
       return;
     }
-    if (isShipping && !shippingAddress.trim()) {
-      toast.error("Versandadresse ist erforderlich.");
+    if (isShipping && !shippingStreet.trim()) {
+      toast.error("Straße ist erforderlich bei Versand.");
+      return;
+    }
+    if (isShipping && !shippingZip.trim()) {
+      toast.error("PLZ ist erforderlich bei Versand.");
+      return;
+    }
+    if (isShipping && !shippingCity.trim()) {
+      toast.error("Stadt ist erforderlich bei Versand.");
       return;
     }
     if (!isShipping && !pickupBy.trim()) {
@@ -114,13 +136,17 @@ export function OrderForm({ articles }: { articles: Article[] }) {
         orderedFor,
         costCenter,
         deliveryMethod: isShipping ? "SHIPPING" : "PICKUP",
-        shippingAddress: isShipping ? shippingAddress : undefined,
+        shippingCompany: isShipping ? shippingCompany || undefined : undefined,
+        shippingStreet: isShipping ? shippingStreet : undefined,
+        shippingZip: isShipping ? shippingZip : undefined,
+        shippingCity: isShipping ? shippingCity : undefined,
         pickupBy: !isShipping ? pickupBy : undefined,
         notes: notes || undefined,
-        items: orderItems.map((i) => ({
-          articleId: i.article.id,
-          quantity: i.quantity,
-        })),
+        items: orderItems.map((item) =>
+          item.type === "article"
+            ? { articleId: item.article.id, quantity: item.quantity }
+            : { freeText: item.text, quantity: item.quantity }
+        ),
       });
 
       if (result.success) {
@@ -200,15 +226,46 @@ export function OrderForm({ articles }: { articles: Article[] }) {
           </div>
 
           {isShipping ? (
-            <div className="space-y-2">
-              <Label htmlFor="shippingAddress">Versandadresse *</Label>
-              <Textarea
-                id="shippingAddress"
-                value={shippingAddress}
-                onChange={(e) => setShippingAddress(e.target.value)}
-                placeholder="Straße, PLZ, Ort..."
-                rows={3}
-              />
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="shippingCompany">Firma / Empfänger</Label>
+                <Input
+                  id="shippingCompany"
+                  value={shippingCompany}
+                  onChange={(e) => setShippingCompany(e.target.value)}
+                  placeholder="Firmenname oder Name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="shippingStreet">Straße + Hausnr. *</Label>
+                <Input
+                  id="shippingStreet"
+                  value={shippingStreet}
+                  onChange={(e) => setShippingStreet(e.target.value)}
+                  placeholder="z.B. Musterstraße 123"
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
+                <div className="space-y-2">
+                  <Label htmlFor="shippingZip">PLZ *</Label>
+                  <Input
+                    id="shippingZip"
+                    value={shippingZip}
+                    onChange={(e) => setShippingZip(e.target.value)}
+                    placeholder="12345"
+                    maxLength={10}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="shippingCity">Stadt *</Label>
+                  <Input
+                    id="shippingCity"
+                    value={shippingCity}
+                    onChange={(e) => setShippingCity(e.target.value)}
+                    placeholder="z.B. Berlin"
+                  />
+                </div>
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
@@ -231,6 +288,14 @@ export function OrderForm({ articles }: { articles: Article[] }) {
             <CardTitle className="text-base">
               Artikel ({orderItems.length})
             </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setShowFreeText(!showFreeText); setShowArticleList(false); }}
+            >
+              <FileText className="mr-1.5 h-3.5 w-3.5" />
+              Freitext
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -238,22 +303,65 @@ export function OrderForm({ articles }: { articles: Article[] }) {
           {orderItems.length > 0 && (
             <div className="space-y-2">
               {orderItems.map((item, idx) => {
-                const inStock = item.article.currentStock >= item.quantity;
+                if (item.type === "article") {
+                  const inStock = item.article.currentStock >= item.quantity;
+                  return (
+                    <div
+                      key={`article-${item.article.id}`}
+                      className="flex items-center gap-3 rounded-lg border bg-card p-3"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {item.article.name}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {item.article.sku}
+                          </span>
+                          <span className={`text-[10px] font-medium ${inStock ? "text-emerald-600" : "text-red-600"}`}>
+                            Lager: {item.article.currentStock}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Input
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={(e) =>
+                            updateQuantity(idx, parseInt(e.target.value) || 1)
+                          }
+                          className="w-20 h-8 text-center font-mono"
+                        />
+                        <span className="text-xs text-muted-foreground w-6">
+                          {item.article.unit}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeItem(idx)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Free text item
                 return (
                   <div
-                    key={item.article.id}
-                    className="flex items-center gap-3 rounded-lg border bg-card p-3"
+                    key={`freetext-${idx}`}
+                    className="flex items-center gap-3 rounded-lg border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 p-3"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
-                        {item.article.name}
+                        {item.text}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {item.article.sku}
-                        </span>
-                        <span className={`text-[10px] font-medium ${inStock ? "text-emerald-600" : "text-red-600"}`}>
-                          Lager: {item.article.currentStock}
+                        <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                          Freitext – nicht im Artikelstamm
                         </span>
                       </div>
                     </div>
@@ -268,13 +376,13 @@ export function OrderForm({ articles }: { articles: Article[] }) {
                         className="w-20 h-8 text-center font-mono"
                       />
                       <span className="text-xs text-muted-foreground w-6">
-                        {item.article.unit}
+                        Stk
                       </span>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeArticle(idx)}
+                        onClick={() => removeItem(idx)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -282,6 +390,26 @@ export function OrderForm({ articles }: { articles: Article[] }) {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Freitext hinzufügen */}
+          {showFreeText && (
+            <div className="rounded-lg border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/30 dark:bg-amber-950/10 p-3 space-y-2">
+              <Label className="text-xs text-amber-700 dark:text-amber-400">Freitext-Position hinzufügen</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="z.B. Spezial-Kabel USB-C 3m..."
+                  value={freeTextInput}
+                  onChange={(e) => setFreeTextInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addFreeText()}
+                  className="flex-1"
+                />
+                <Button size="sm" onClick={addFreeText} disabled={!freeTextInput.trim()}>
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Hinzufügen
+                </Button>
+              </div>
             </div>
           )}
 
@@ -295,8 +423,9 @@ export function OrderForm({ articles }: { articles: Article[] }) {
                 onChange={(e) => {
                   setArticleSearch(e.target.value);
                   setShowArticleList(true);
+                  setShowFreeText(false);
                 }}
-                onFocus={() => setShowArticleList(true)}
+                onFocus={() => { setShowArticleList(true); setShowFreeText(false); }}
                 className="pl-9"
               />
             </div>

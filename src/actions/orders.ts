@@ -10,10 +10,13 @@ export async function createOrder(data: {
   orderedFor: string;
   costCenter: string;
   deliveryMethod: string;
-  shippingAddress?: string;
+  shippingCompany?: string;
+  shippingStreet?: string;
+  shippingZip?: string;
+  shippingCity?: string;
   pickupBy?: string;
   notes?: string;
-  items: { articleId: string; quantity: number }[];
+  items: { articleId?: string; freeText?: string; quantity: number }[];
 }) {
   const parsed = createOrderSchema.safeParse(data);
 
@@ -32,7 +35,8 @@ export async function createOrder(data: {
         orderNumber,
         items: {
           create: items.map((item) => ({
-            articleId: item.articleId,
+            articleId: item.articleId || null,
+            freeText: item.freeText || null,
             quantity: item.quantity,
           })),
         },

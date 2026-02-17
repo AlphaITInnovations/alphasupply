@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Send, UserCheck, MapPin, User, Building2 } from "lucide-react";
+import { ArrowLeft, Send, UserCheck, MapPin, User, Building2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +31,10 @@ export default async function OrderDetailPage({
   if (!order) {
     notFound();
   }
+
+  const shippingFormatted = order.deliveryMethod === "SHIPPING"
+    ? [order.shippingCompany, order.shippingStreet, [order.shippingZip, order.shippingCity].filter(Boolean).join(" ")].filter(Boolean).join(", ")
+    : null;
 
   return (
     <div className="space-y-6">
@@ -113,7 +117,7 @@ export default async function OrderDetailPage({
                 </p>
                 <p className="text-sm font-semibold">
                   {order.deliveryMethod === "SHIPPING"
-                    ? order.shippingAddress ?? "–"
+                    ? shippingFormatted ?? "–"
                     : order.pickupBy ?? "–"}
                 </p>
               </div>
@@ -122,15 +126,21 @@ export default async function OrderDetailPage({
         </Card>
       </div>
 
-      {/* Versandadresse (nur bei Versand, wenn lang) */}
-      {order.deliveryMethod === "SHIPPING" && order.shippingAddress && order.shippingAddress.length > 30 && (
+      {/* Versandadresse Detail (nur bei Versand) */}
+      {order.deliveryMethod === "SHIPPING" && order.shippingStreet && (
         <Card>
           <CardContent className="pt-4 pb-4">
             <div className="flex items-start gap-3">
               <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div>
+              <div className="space-y-0.5">
                 <p className="text-[11px] text-muted-foreground mb-1">Versandadresse</p>
-                <p className="text-sm whitespace-pre-line">{order.shippingAddress}</p>
+                {order.shippingCompany && (
+                  <p className="text-sm font-semibold">{order.shippingCompany}</p>
+                )}
+                <p className="text-sm">{order.shippingStreet}</p>
+                <p className="text-sm">
+                  {[order.shippingZip, order.shippingCity].filter(Boolean).join(" ")}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -158,6 +168,37 @@ export default async function OrderDetailPage({
             </TableHeader>
             <TableBody>
               {order.items.map((item) => {
+                // Free text item (no article linked)
+                if (!item.article) {
+                  return (
+                    <TableRow key={item.id} className="border-border/30 bg-amber-50/30 dark:bg-amber-950/10">
+                      <TableCell>
+                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" />
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground italic">–</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          <span className="text-sm font-medium">{item.freeText}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-700">
+                          Freitext
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm font-semibold">
+                        {item.quantity} Stk
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm text-red-600 font-semibold">
+                        –
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+
                 const inStock = item.article.currentStock >= item.quantity;
                 return (
                   <TableRow key={item.id} className="border-border/30">

@@ -57,6 +57,7 @@ model Article {
   unit             String          @default("Stk")
   minStockLevel    Int             @default(0)
   currentStock     Int             @default(0)
+  incomingStock    Int             @default(0) // Im Zulauf (durch Bestellungen getriggert)
   imageUrl         String?
   isActive         Boolean         @default(true)
   notes            String?
@@ -197,7 +198,10 @@ model Order {
   orderedFor      String         // Für wen ist die Bestellung (Name)
   costCenter      String         // Kostenstelle (Nummer)
   deliveryMethod  DeliveryMethod
-  shippingAddress String?        // Nur bei SHIPPING
+  shippingCompany String?        // Firmenname (nur bei SHIPPING)
+  shippingStreet  String?        // Straße + Hausnr (nur bei SHIPPING)
+  shippingZip     String?        // PLZ (nur bei SHIPPING)
+  shippingCity    String?        // Stadt (nur bei SHIPPING)
   pickupBy        String?        // Nur bei PICKUP: wer holt ab
   notes           String?
 
@@ -211,14 +215,14 @@ model Order {
 }
 
 model OrderItem {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   orderId   String
-  articleId String
+  articleId String? // Null wenn Freitext-Position
+  freeText  String? // Freitext-Beschreibung (z.B. von externen Tools)
   quantity  Int
 
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  article Article @relation(fields: [articleId], references: [id])
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  article Article? @relation(fields: [articleId], references: [id])
 
-  @@unique([orderId, articleId])
   @@index([orderId])
 }

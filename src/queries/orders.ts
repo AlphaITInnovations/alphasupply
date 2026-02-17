@@ -29,6 +29,7 @@ export async function getOrders(options?: {
               sku: true,
               category: true,
               currentStock: true,
+              incomingStock: true,
               unit: true,
             },
           },
@@ -58,6 +59,7 @@ export async function getOrderById(id: string) {
               sku: true,
               category: true,
               currentStock: true,
+              incomingStock: true,
               unit: true,
               productGroup: true,
               productSubGroup: true,
@@ -90,16 +92,31 @@ export async function getNextOrderNumber(): Promise<string> {
 }
 
 function calculateStockAvailability(
-  items: { quantity: number; article: { currentStock: number } }[]
+  items: { quantity: number; articleId: string | null; freeText: string | null; article: { currentStock: number; incomingStock: number } | null }[]
 ): StockAvailability {
   if (items.length === 0) return "green";
 
-  const allInStock = items.every(
-    (item) => item.article.currentStock >= item.quantity
+  // Free text items without article = always red (not in system)
+  const hasFreeTextOnly = items.some((item) => !item.article && item.freeText);
+  if (hasFreeTextOnly) return "red";
+
+  const articleItems = items.filter((item) => item.article != null);
+
+  const allInStock = articleItems.every(
+    (item) => item.article!.currentStock >= item.quantity
   );
 
   if (allInStock) return "green";
 
-  // TODO: When procurement system exists, check if missing items are on order → "yellow"
+  // Check if missing items are at least in transit
+  const missingItems = articleItems.filter(
+    (item) => item.article!.currentStock < item.quantity
+  );
+  const allMissingInTransit = missingItems.every(
+    (item) => item.article!.currentStock + item.article!.incomingStock >= item.quantity
+  );
+
+  if (allMissingInTransit) return "yellow";
+
   return "red";
 }

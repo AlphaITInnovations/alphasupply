@@ -79,7 +79,7 @@ export default async function ArticleDetailPage({
       </div>
 
       {/* Bestandskarten */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Card className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-petrol/5 to-transparent" />
           <CardHeader className="relative pb-2">
@@ -93,6 +93,21 @@ export default async function ArticleDetailPage({
             </div>
           </CardContent>
         </Card>
+        {article.incomingStock > 0 && (
+          <Card className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent" />
+            <CardHeader className="relative pb-2">
+              <CardTitle className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                Im Zulauf
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="relative">
+              <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                +{article.incomingStock} {article.unit}
+              </div>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">

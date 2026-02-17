@@ -33,6 +33,7 @@ type ArticleRow = {
   avgPurchasePrice: { toNumber(): number } | number | string | null;
   unit: string;
   currentStock: number;
+  incomingStock: number;
   minStockLevel: number;
   notes: string | null;
   _count: { serialNumbers: number; articleSuppliers: number };
@@ -65,6 +66,7 @@ export function ArticleListTable({
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Kategorie</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right">EK netto</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right">Bestand</TableHead>
+              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right">Zulauf</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right">Min.</TableHead>
               <TableHead className="py-3 w-12" />
             </TableRow>
@@ -72,7 +74,7 @@ export function ArticleListTable({
           <TableBody>
             {articles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                   Keine Artikel gefunden.
                 </TableCell>
               </TableRow>
@@ -123,6 +125,15 @@ export function ArticleListTable({
                       <span className="text-sm font-bold tabular-nums">
                         {article.currentStock}
                       </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {article.incomingStock > 0 ? (
+                        <span className="text-sm font-medium tabular-nums text-amber-500">
+                          +{article.incomingStock}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground/40 tabular-nums">–</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
