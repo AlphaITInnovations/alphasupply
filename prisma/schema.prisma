@@ -12,7 +12,7 @@ datasource db {
 enum ArticleCategory {
   SERIALIZED  // Teure Artikel MIT Seriennummer, IMMER nachbestellen
   STANDARD    // Artikel OHNE Seriennummer, nachbestellen pro Auftrag
-  CONSUMABLE  // Verbrauchsmaterial (Kabel etc.), nachbestellen wenn leer
+  CONSUMABLE  // Schüttgut (Kabel etc.), muss bei Aufträgen NICHT nachbestellt werden
 }
 
 enum StockMovementType {

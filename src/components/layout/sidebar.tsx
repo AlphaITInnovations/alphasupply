@@ -8,9 +8,10 @@ import {
   Truck,
   ClipboardList,
   LayoutDashboard,
-  MapPin,
+  Warehouse,
   ArrowLeftRight,
   Factory,
+  ListOrdered,
   Menu,
   X,
 } from "lucide-react";
@@ -27,8 +28,8 @@ const navigation = [
   {
     name: "Lager",
     items: [
-      { name: "Artikel", href: "/inventory", icon: Package },
-      { name: "Lagerorte", href: "/inventory/locations", icon: MapPin },
+      { name: "Lagerbestand", href: "/inventory/stock", icon: Warehouse },
+      { name: "Artikelliste", href: "/inventory", icon: ListOrdered },
       { name: "Lagerbewegungen", href: "/inventory/movements", icon: ArrowLeftRight },
       { name: "Lieferanten", href: "/inventory/suppliers", icon: Factory },
     ],
@@ -111,7 +112,13 @@ export function Sidebar() {
                     {item.name}
                   </p>
                   {item.items.map((subItem) => {
-                    const isActive = pathname === subItem.href || pathname.startsWith(subItem.href + "/");
+                    const knownSubPaths = ["/inventory/stock", "/inventory/movements", "/inventory/suppliers", "/inventory/locations"];
+                    const isActive =
+                      subItem.href === "/inventory"
+                        ? pathname === "/inventory" ||
+                          (pathname.startsWith("/inventory/") &&
+                            !knownSubPaths.some((p) => pathname.startsWith(p)))
+                        : pathname === subItem.href || pathname.startsWith(subItem.href + "/");
                     return (
                       <Link
                         key={subItem.href}

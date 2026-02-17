@@ -96,6 +96,23 @@ export async function getSuppliers() {
   });
 }
 
+export async function getStockArticles() {
+  return db.article.findMany({
+    where: {
+      isActive: true,
+      currentStock: { gt: 0 },
+    },
+    include: {
+      serialNumbers: {
+        where: { status: "IN_STOCK" },
+        select: { id: true, serialNo: true, status: true },
+        orderBy: { serialNo: "asc" },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+}
+
 export async function getDashboardStats() {
   const [
     totalArticles,

@@ -3,7 +3,7 @@ import { z } from "zod/v4";
 export const articleCategoryLabels: Record<string, string> = {
   SERIALIZED: "Mit Seriennummer",
   STANDARD: "Standard",
-  CONSUMABLE: "Verbrauchsmaterial",
+  CONSUMABLE: "Schüttgut",
 };
 
 export const stockMovementTypeLabels: Record<string, string> = {
