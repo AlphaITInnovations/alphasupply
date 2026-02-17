@@ -10,6 +10,8 @@ import {
   UserCheck,
   PackageCheck,
   FileText,
+  Smartphone,
+  CardSim,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createOrder } from "@/actions/orders";
 import { articleCategoryLabels } from "@/types/inventory";
+import {
+  mobilfunkTypeLabels,
+  simTypeLabels,
+  mobilfunkTariffLabels,
+} from "@/types/orders";
+import type { MobilfunkItemInput } from "@/types/orders";
 import { toast } from "sonner";
 
 type Article = {
@@ -34,6 +42,10 @@ type Article = {
 type OrderItemEntry =
   | { type: "article"; article: Article; quantity: number }
   | { type: "freetext"; text: string; quantity: number };
+
+type MobilfunkEntry = MobilfunkItemInput & { _key: number };
+
+let mfKeyCounter = 0;
 
 export function OrderForm({ articles }: { articles: Article[] }) {
   const router = useRouter();
@@ -57,6 +69,9 @@ export function OrderForm({ articles }: { articles: Article[] }) {
   const [showArticleList, setShowArticleList] = useState(false);
   const [freeTextInput, setFreeTextInput] = useState("");
   const [showFreeText, setShowFreeText] = useState(false);
+
+  // Mobilfunk
+  const [mobilfunkItems, setMobilfunkItems] = useState<MobilfunkEntry[]>([]);
 
   const selectedIds = new Set(
     orderItems.filter((i) => i.type === "article").map((i) => i.article.id)
@@ -96,6 +111,45 @@ export function OrderForm({ articles }: { articles: Article[] }) {
     );
   }
 
+  // Mobilfunk functions
+  function addMobilfunk() {
+    setMobilfunkItems((prev) => [
+      ...prev,
+      { _key: ++mfKeyCounter, type: "PHONE_AND_SIM", simType: "SIM", tariff: "STANDARD" },
+    ]);
+  }
+
+  function removeMobilfunk(key: number) {
+    setMobilfunkItems((prev) => prev.filter((m) => m._key !== key));
+  }
+
+  function updateMobilfunk(key: number, updates: Partial<MobilfunkItemInput>) {
+    setMobilfunkItems((prev) =>
+      prev.map((m) => {
+        if (m._key !== key) return m;
+        const updated = { ...m, ...updates };
+        // Clear SIM fields when type is PHONE_ONLY
+        if (updated.type === "PHONE_ONLY") {
+          updated.simType = undefined;
+          updated.tariff = undefined;
+          updated.simNote = undefined;
+        }
+        // Clear phone fields when type is SIM_ONLY
+        if (updated.type === "SIM_ONLY") {
+          updated.phoneNote = undefined;
+        }
+        // Ensure SIM defaults when switching to type with SIM
+        if (updates.type && updates.type !== "PHONE_ONLY") {
+          if (!updated.simType) updated.simType = "SIM";
+          if (!updated.tariff) updated.tariff = "STANDARD";
+        }
+        return updated;
+      })
+    );
+  }
+
+  const hasItems = orderItems.length > 0 || mobilfunkItems.length > 0;
+
   function handleSubmit() {
     if (!orderedBy.trim()) {
       toast.error("Besteller ist erforderlich.");
@@ -125,8 +179,8 @@ export function OrderForm({ articles }: { articles: Article[] }) {
       toast.error("Name des Abholers ist erforderlich.");
       return;
     }
-    if (orderItems.length === 0) {
-      toast.error("Mindestens ein Artikel muss hinzugefügt werden.");
+    if (!hasItems) {
+      toast.error("Mindestens ein Artikel oder Mobilfunk-Position muss hinzugefügt werden.");
       return;
     }
 
@@ -147,6 +201,9 @@ export function OrderForm({ articles }: { articles: Article[] }) {
             ? { articleId: item.article.id, quantity: item.quantity }
             : { freeText: item.text, quantity: item.quantity }
         ),
+        mobilfunk: mobilfunkItems.length > 0
+          ? mobilfunkItems.map(({ _key, ...mf }) => mf)
+          : undefined,
       });
 
       if (result.success) {
@@ -463,6 +520,141 @@ export function OrderForm({ articles }: { articles: Article[] }) {
         </CardContent>
       </Card>
 
+      {/* Mobilfunk */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Smartphone className="h-4 w-4" />
+              Mobilfunk ({mobilfunkItems.length})
+            </CardTitle>
+            <Button variant="outline" size="sm" onClick={addMobilfunk}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              Hinzufügen
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {mobilfunkItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Keine Mobilfunk-Positionen. Nur hinzufügen wenn Handy/SIM benötigt.
+            </p>
+          ) : (
+            mobilfunkItems.map((mf) => (
+              <div
+                key={mf._key}
+                className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/30 dark:bg-violet-950/20 p-4 space-y-3"
+              >
+                {/* Typ-Auswahl */}
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-1.5">
+                    {(["PHONE_AND_SIM", "PHONE_ONLY", "SIM_ONLY"] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => updateMobilfunk(mf._key, { type: t })}
+                        className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                          mf.type === t
+                            ? "bg-violet-600 text-white shadow-sm"
+                            : "bg-white dark:bg-white/10 text-muted-foreground hover:bg-violet-100 dark:hover:bg-violet-900/30 border"
+                        }`}
+                      >
+                        {mobilfunkTypeLabels[t]}
+                      </button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeMobilfunk(mf._key)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {/* SIM-Typ (nur wenn SIM dabei) */}
+                  {mf.type !== "PHONE_ONLY" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs flex items-center gap-1.5">
+                        <CardSim className="h-3 w-3" />
+                        SIM-Typ
+                      </Label>
+                      <div className="flex gap-1.5">
+                        {(["SIM", "ESIM"] as const).map((st) => (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => updateMobilfunk(mf._key, { simType: st })}
+                            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                              mf.simType === st
+                                ? "bg-violet-600 text-white shadow-sm"
+                                : "bg-white dark:bg-white/10 text-muted-foreground hover:bg-violet-100 dark:hover:bg-violet-900/30 border"
+                            }`}
+                          >
+                            {simTypeLabels[st]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tarif (nur wenn SIM dabei) */}
+                  {mf.type !== "PHONE_ONLY" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Tarif</Label>
+                      <div className="flex gap-1.5">
+                        {(["STANDARD", "UNLIMITED"] as const).map((tf) => (
+                          <button
+                            key={tf}
+                            type="button"
+                            onClick={() => updateMobilfunk(mf._key, { tariff: tf })}
+                            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                              mf.tariff === tf
+                                ? "bg-violet-600 text-white shadow-sm"
+                                : "bg-white dark:bg-white/10 text-muted-foreground hover:bg-violet-100 dark:hover:bg-violet-900/30 border"
+                            }`}
+                          >
+                            {mobilfunkTariffLabels[tf]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Notiz-Felder */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {mf.type !== "SIM_ONLY" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Handy-Hinweis</Label>
+                      <Input
+                        placeholder="z.B. iPhone 15, Samsung Galaxy..."
+                        value={mf.phoneNote ?? ""}
+                        onChange={(e) => updateMobilfunk(mf._key, { phoneNote: e.target.value })}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  )}
+                  {mf.type !== "PHONE_ONLY" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">SIM-Hinweis</Label>
+                      <Input
+                        placeholder="z.B. Rufnummer, Portierung..."
+                        value={mf.simNote ?? ""}
+                        onChange={(e) => updateMobilfunk(mf._key, { simNote: e.target.value })}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
       {/* Notizen */}
       <Card>
         <CardHeader className="pb-3">
@@ -483,7 +675,7 @@ export function OrderForm({ articles }: { articles: Article[] }) {
         size="lg"
         className="w-full"
         onClick={handleSubmit}
-        disabled={isPending || orderItems.length === 0}
+        disabled={isPending || !hasItems}
       >
         <PackageCheck className="mr-2 h-5 w-5" />
         {isPending ? "Wird erstellt..." : "Auftrag erstellen"}

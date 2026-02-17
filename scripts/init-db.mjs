@@ -218,6 +218,32 @@ async function runMigrations(client) {
     await client.query(`ALTER TABLE "Article" ADD COLUMN "incomingStock" INTEGER NOT NULL DEFAULT 0`);
     console.log("Migration: Added incomingStock to Article.");
   }
+
+  // Migration 11: Create OrderMobilfunk table
+  const hasMobilfunkTable = await client.query(
+    `SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'OrderMobilfunk')`
+  );
+  if (!hasMobilfunkTable.rows[0].exists) {
+    await client.query(`CREATE TYPE "MobilfunkType" AS ENUM ('PHONE_AND_SIM', 'PHONE_ONLY', 'SIM_ONLY')`).catch(() => {});
+    await client.query(`CREATE TYPE "SimType" AS ENUM ('SIM', 'ESIM')`).catch(() => {});
+    await client.query(`CREATE TYPE "MobilfunkTariff" AS ENUM ('STANDARD', 'UNLIMITED')`).catch(() => {});
+    await client.query(`
+      CREATE TABLE "OrderMobilfunk" (
+        "id" TEXT NOT NULL,
+        "orderId" TEXT NOT NULL,
+        "type" "MobilfunkType" NOT NULL,
+        "simType" "SimType",
+        "tariff" "MobilfunkTariff",
+        "phoneNote" TEXT,
+        "simNote" TEXT,
+        "delivered" BOOLEAN NOT NULL DEFAULT false,
+        CONSTRAINT "OrderMobilfunk_pkey" PRIMARY KEY ("id")
+      );
+      CREATE INDEX "OrderMobilfunk_orderId_idx" ON "OrderMobilfunk"("orderId");
+      ALTER TABLE "OrderMobilfunk" ADD CONSTRAINT "OrderMobilfunk_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    `);
+    console.log("Migration: Created OrderMobilfunk table.");
+  }
 }
 
 main().catch((err) => {

@@ -35,6 +35,7 @@ export async function getOrders(options?: {
           },
         },
       },
+      mobilfunk: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -67,6 +68,7 @@ export async function getOrderById(id: string) {
           },
         },
       },
+      mobilfunk: true,
     },
   });
 

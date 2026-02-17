@@ -21,6 +21,34 @@ export const deliveryMethodLabels: Record<string, string> = {
   PICKUP: "Abholung",
 };
 
+// ─── Mobilfunk Labels ──────────────────────────────────
+
+export const mobilfunkTypeLabels: Record<string, string> = {
+  PHONE_AND_SIM: "Handy + SIM",
+  PHONE_ONLY: "Nur Handy",
+  SIM_ONLY: "Nur SIM",
+};
+
+export const simTypeLabels: Record<string, string> = {
+  SIM: "SIM-Karte",
+  ESIM: "eSIM",
+};
+
+export const mobilfunkTariffLabels: Record<string, string> = {
+  STANDARD: "Standard-Tarif",
+  UNLIMITED: "Unbegrenzt-Tarif",
+};
+
+// ─── Schemas ───────────────────────────────────────────
+
+export const mobilfunkItemSchema = z.object({
+  type: z.enum(["PHONE_AND_SIM", "PHONE_ONLY", "SIM_ONLY"]),
+  simType: z.enum(["SIM", "ESIM"]).optional(),
+  tariff: z.enum(["STANDARD", "UNLIMITED"]).optional(),
+  phoneNote: z.string().optional(),
+  simNote: z.string().optional(),
+});
+
 export const createOrderSchema = z.object({
   orderedBy: z.string().min(1, "Besteller ist erforderlich"),
   orderedFor: z.string().min(1, "Empfänger ist erforderlich"),
@@ -33,13 +61,15 @@ export const createOrderSchema = z.object({
   pickupBy: z.string().optional(),
   notes: z.string().optional(),
   items: z.array(z.object({
-    articleId: z.string().optional(), // Null bei Freitext
-    freeText: z.string().optional(),  // Freitext-Beschreibung
+    articleId: z.string().optional(),
+    freeText: z.string().optional(),
     quantity: z.number().int().min(1),
-  })).min(1, "Mindestens ein Artikel ist erforderlich"),
+  })),
+  mobilfunk: z.array(mobilfunkItemSchema).optional(),
 });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+export type MobilfunkItemInput = z.infer<typeof mobilfunkItemSchema>;
 
 // Stock availability for an order
 export type StockAvailability = "green" | "yellow" | "red";

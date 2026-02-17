@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { Plus, Send, UserCheck } from "lucide-react";
+import { Plus, Send, UserCheck, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -102,7 +102,12 @@ export default async function OrdersPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums text-sm">
-                      {order.items.length}
+                      <div className="flex items-center justify-end gap-1.5">
+                        {order.items.length}
+                        {order.mobilfunk.length > 0 && (
+                          <Smartphone className="h-3.5 w-3.5 text-violet-500" />
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(order.createdAt).toLocaleDateString("de-DE")}
@@ -150,7 +155,12 @@ export default async function OrdersPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums text-sm">
-                      {order.items.length}
+                      <div className="flex items-center justify-end gap-1.5">
+                        {order.items.length}
+                        {order.mobilfunk.length > 0 && (
+                          <Smartphone className="h-3.5 w-3.5 text-violet-500" />
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(order.createdAt).toLocaleDateString("de-DE")}

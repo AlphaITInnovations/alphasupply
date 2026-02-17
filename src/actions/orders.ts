@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { createOrderSchema } from "@/types/orders";
+import type { MobilfunkItemInput } from "@/types/orders";
 import { getNextOrderNumber } from "@/queries/orders";
 
 export async function createOrder(data: {
@@ -17,6 +18,7 @@ export async function createOrder(data: {
   pickupBy?: string;
   notes?: string;
   items: { articleId?: string; freeText?: string; quantity: number }[];
+  mobilfunk?: MobilfunkItemInput[];
 }) {
   const parsed = createOrderSchema.safeParse(data);
 
@@ -24,7 +26,7 @@ export async function createOrder(data: {
     return { error: parsed.error.issues.map((i) => i.message).join(", ") };
   }
 
-  const { items, ...orderData } = parsed.data;
+  const { items, mobilfunk, ...orderData } = parsed.data;
 
   try {
     const orderNumber = await getNextOrderNumber();
@@ -40,8 +42,19 @@ export async function createOrder(data: {
             quantity: item.quantity,
           })),
         },
+        ...(mobilfunk && mobilfunk.length > 0 && {
+          mobilfunk: {
+            create: mobilfunk.map((mf) => ({
+              type: mf.type,
+              simType: mf.simType || null,
+              tariff: mf.tariff || null,
+              phoneNote: mf.phoneNote || null,
+              simNote: mf.simNote || null,
+            })),
+          },
+        }),
       },
-      include: { items: true },
+      include: { items: true, mobilfunk: true },
     });
 
     revalidatePath("/orders");
@@ -69,6 +82,19 @@ export async function updateOrderStatus(id: string, status: string) {
     return { success: true };
   } catch {
     return { error: "Fehler beim Aktualisieren des Status." };
+  }
+}
+
+export async function toggleMobilfunkDelivered(id: string, delivered: boolean) {
+  try {
+    await db.orderMobilfunk.update({
+      where: { id },
+      data: { delivered },
+    });
+    revalidatePath("/orders");
+    return { success: true };
+  } catch {
+    return { error: "Fehler beim Aktualisieren." };
   }
 }
 

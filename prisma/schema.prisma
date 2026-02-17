@@ -43,6 +43,22 @@ enum DeliveryMethod {
   PICKUP   // Abholung vor Ort
 }
 
+enum MobilfunkType {
+  PHONE_AND_SIM // Handy + SIM
+  PHONE_ONLY    // Nur Handy
+  SIM_ONLY      // Nur SIM
+}
+
+enum SimType {
+  SIM  // Physische SIM-Karte
+  ESIM // eSIM
+}
+
+enum MobilfunkTariff {
+  STANDARD  // Normaler Tarif
+  UNLIMITED // Unbegrenzt-Tarif
+}
+
 // ─── ARTIKEL ─────────────────────────────────────────────
 
 model Article {
@@ -208,7 +224,8 @@ model Order {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items OrderItem[]
+  items      OrderItem[]
+  mobilfunk  OrderMobilfunk[]
 
   @@index([status])
   @@index([createdAt])
@@ -223,6 +240,23 @@ model OrderItem {
 
   order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   article Article? @relation(fields: [articleId], references: [id])
+
+  @@index([orderId])
+}
+
+// ─── MOBILFUNK (Tracking in Aufträgen) ─────────────────
+
+model OrderMobilfunk {
+  id        String           @id @default(cuid())
+  orderId   String
+  type      MobilfunkType    // Handy+SIM, nur Handy, nur SIM
+  simType   SimType?         // SIM oder eSIM (nur wenn SIM dabei)
+  tariff    MobilfunkTariff? // Tarif (nur wenn SIM dabei)
+  phoneNote String?          // z.B. Modellwunsch, Farbe etc.
+  simNote   String?          // z.B. Rufnummer, Portierung etc.
+  delivered Boolean          @default(false) // Bei Lieferung abgehakt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
 }

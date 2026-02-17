@@ -145,6 +145,15 @@ CREATE TYPE "OrderStatus" AS ENUM ('NEW', 'IN_PROGRESS', 'READY', 'COMPLETED', '
 -- CreateEnum
 CREATE TYPE "DeliveryMethod" AS ENUM ('SHIPPING', 'PICKUP');
 
+-- CreateEnum
+CREATE TYPE "MobilfunkType" AS ENUM ('PHONE_AND_SIM', 'PHONE_ONLY', 'SIM_ONLY');
+
+-- CreateEnum
+CREATE TYPE "SimType" AS ENUM ('SIM', 'ESIM');
+
+-- CreateEnum
+CREATE TYPE "MobilfunkTariff" AS ENUM ('STANDARD', 'UNLIMITED');
+
 -- CreateTable
 CREATE TABLE "Order" (
     "id" TEXT NOT NULL,
@@ -184,6 +193,22 @@ CREATE INDEX "Order_createdAt_idx" ON "Order"("createdAt");
 
 CREATE INDEX "OrderItem_orderId_idx" ON "OrderItem"("orderId");
 
+-- CreateTable
+CREATE TABLE "OrderMobilfunk" (
+    "id" TEXT NOT NULL,
+    "orderId" TEXT NOT NULL,
+    "type" "MobilfunkType" NOT NULL,
+    "simType" "SimType",
+    "tariff" "MobilfunkTariff",
+    "phoneNote" TEXT,
+    "simNote" TEXT,
+    "delivered" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "OrderMobilfunk_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX "OrderMobilfunk_orderId_idx" ON "OrderMobilfunk"("orderId");
+
 -- AddForeignKey
 ALTER TABLE "SerialNumber" ADD CONSTRAINT "SerialNumber_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "SerialNumber" ADD CONSTRAINT "SerialNumber_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "WarehouseLocation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -198,6 +223,7 @@ ALTER TABLE "ArticleSupplier" ADD CONSTRAINT "ArticleSupplier_supplierId_fkey" F
 
 ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON UPDATE CASCADE;
+ALTER TABLE "OrderMobilfunk" ADD CONSTRAINT "OrderMobilfunk_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Seed: Lieferanten
 INSERT INTO "Supplier" ("id", "name", "contactName", "email", "phone", "website", "notes", "isActive", "createdAt", "updatedAt") VALUES
