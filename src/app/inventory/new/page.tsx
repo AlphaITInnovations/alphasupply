@@ -2,10 +2,13 @@ export const dynamic = "force-dynamic";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArticleForm } from "@/components/inventory/article-form";
-import { getArticleGroupSuggestions } from "@/queries/inventory";
+import { getArticleGroupSuggestions, getNextArticleNumber } from "@/queries/inventory";
 
 export default async function NewArticlePage() {
-  const groupSuggestions = await getArticleGroupSuggestions();
+  const [groupSuggestions, nextSku] = await Promise.all([
+    getArticleGroupSuggestions(),
+    getNextArticleNumber(),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -14,7 +17,10 @@ export default async function NewArticlePage() {
           <CardTitle>Neuen Artikel anlegen</CardTitle>
         </CardHeader>
         <CardContent>
-          <ArticleForm groupSuggestions={groupSuggestions} />
+          <ArticleForm
+            groupSuggestions={groupSuggestions}
+            nextSku={nextSku}
+          />
         </CardContent>
       </Card>
     </div>

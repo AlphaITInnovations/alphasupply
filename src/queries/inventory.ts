@@ -96,6 +96,19 @@ export async function getSuppliers() {
   });
 }
 
+export async function getNextArticleNumber(): Promise<string> {
+  const latest = await db.article.findFirst({
+    where: { sku: { startsWith: "ART-" } },
+    orderBy: { sku: "desc" },
+    select: { sku: true },
+  });
+
+  if (!latest) return "ART-001";
+
+  const num = parseInt(latest.sku.replace("ART-", ""), 10);
+  return `ART-${String(num + 1).padStart(3, "0")}`;
+}
+
 export async function getArticleGroupSuggestions() {
   const [groups, subGroups] = await Promise.all([
     db.article.findMany({

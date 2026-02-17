@@ -37,10 +37,12 @@ export function ArticleForm({
   article,
   onSuccess,
   groupSuggestions,
+  nextSku,
 }: {
   article?: ArticleData;
   onSuccess?: () => void;
   groupSuggestions?: { groups: string[]; subGroups: string[] };
+  nextSku?: string;
 }) {
   const router = useRouter();
   const [isUsed, setIsUsed] = useState(article?.isUsed ?? false);
@@ -85,15 +87,18 @@ export function ArticleForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="sku">Artikelnummer *</Label>
+          <Label htmlFor="sku">Artikelnummer</Label>
           <Input
             id="sku"
             name="sku"
-            defaultValue={article?.sku}
-            placeholder="ART-011"
+            defaultValue={article?.sku ?? nextSku}
             required
-            disabled={!!article}
+            readOnly
+            className="bg-muted/50 font-mono"
           />
+          {!article && (
+            <p className="text-[11px] text-muted-foreground">Wird automatisch vergeben</p>
+          )}
         </div>
       </div>
 
