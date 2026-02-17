@@ -17,13 +17,6 @@ async function main() {
 
     // Run migrations for existing DBs
     await runMigrations(client);
-
-    // Still run seed data (ON CONFLICT DO NOTHING keeps it safe)
-    const seedMatch = sql.match(/-- Seed:[\s\S]*/);
-    if (seedMatch) {
-      await client.query(seedMatch[0]);
-      console.log("Seed data checked.");
-    }
   } else {
     console.log("Creating DB schema...");
     await client.query(sql);
@@ -303,27 +296,53 @@ async function runMigrations(client) {
   }
 
   // Migration 13: New seed articles (LC-421 Value Pack, HP G5 Dock, Logitech Brio 100)
-  const hasLC421 = await client.query(
-    `SELECT EXISTS (SELECT 1 FROM "Article" WHERE "id" = 'art-brother-lc421vp')`
+  // Uses dynamic SKU assignment to avoid conflicts with app-created articles
+  const newSeedArticles = [
+    { id: 'art-brother-lc421vp', name: 'Brother LC-421 Value Pack', desc: 'Tintenpatronen-Set (BK/C/M/Y) fuer DCP-J1800DW', category: 'CONSUMABLE', group: 'Verbrauchsmaterial', sub: 'Tinte', price: 30.00, unit: 'Set', min: 2 },
+    { id: 'art-hp-usbc-g5-dock', name: 'HP USB-C G5 Essential Dock', desc: 'USB-C Dockingstation EMEA', category: 'SERIALIZED', group: 'Dockingstation', sub: 'USB-C', price: 99.00, unit: 'Stk', min: 1 },
+    { id: 'art-logitech-brio100', name: 'Logitech Brio 100', desc: 'Full HD Webcam 2 Mpx USB', category: 'SERIALIZED', group: 'Peripherie', sub: 'Webcam', price: 33.00, unit: 'Stk', min: 2 },
+  ];
+
+  // Get next available SKU number
+  const maxSkuRes = await client.query(
+    `SELECT COALESCE(MAX(CAST(REPLACE("sku", 'ART-', '') AS INTEGER)), 0) AS max_num FROM "Article" WHERE "sku" LIKE 'ART-%'`
   );
-  if (!hasLC421.rows[0].exists) {
-    await client.query(`
-      INSERT INTO "Article" ("id", "name", "description", "sku", "category", "productGroup", "productSubGroup", "avgPurchasePrice", "unit", "minStockLevel", "currentStock", "imageUrl", "isActive", "notes", "createdAt", "updatedAt") VALUES
-        ('art-brother-lc421vp', 'Brother LC-421 Value Pack', 'Tintenpatronen-Set (BK/C/M/Y) fuer DCP-J1800DW', 'ART-011', 'CONSUMABLE', 'Verbrauchsmaterial', 'Tinte', 30.00, 'Set', 2, 0, NULL, true, NULL, NOW(), NOW()),
-        ('art-hp-usbc-g5-dock', 'HP USB-C G5 Essential Dock', 'USB-C Dockingstation EMEA', 'ART-012', 'SERIALIZED', 'Dockingstation', 'USB-C', 99.00, 'Stk', 1, 0, NULL, true, NULL, NOW(), NOW()),
-        ('art-logitech-brio100', 'Logitech Brio 100', 'Full HD Webcam 2 Mpx USB', 'ART-013', 'SERIALIZED', 'Peripherie', 'Webcam', 33.00, 'Stk', 2, 0, NULL, true, NULL, NOW(), NOW())
-      ON CONFLICT DO NOTHING;
-    `);
-    // Supplier links
-    await client.query(`
-      INSERT INTO "ArticleSupplier" ("id", "articleId", "supplierId", "supplierSku", "unitPrice", "currency", "leadTimeDays", "minOrderQty", "isPreferred", "lastOrderDate", "notes", "createdAt", "updatedAt") VALUES
-        ('as-lc421-amazon', 'art-brother-lc421vp', 'sup-amazon', NULL, 35.70, 'EUR', 3, 1, true, NULL, NULL, NOW(), NOW()),
-        ('as-hp-dock-galaxus', 'art-hp-usbc-g5-dock', 'sup-galaxus', NULL, 117.81, 'EUR', 5, 1, true, NULL, NULL, NOW(), NOW()),
-        ('as-brio100-galaxus', 'art-logitech-brio100', 'sup-galaxus', NULL, 39.27, 'EUR', 5, 1, true, NULL, NULL, NOW(), NOW())
-      ON CONFLICT DO NOTHING;
-    `);
-    console.log("Migration 13: Added new seed articles (LC-421, HP G5 Dock, Brio 100).");
+  let nextSkuNum = maxSkuRes.rows[0].max_num + 1;
+
+  for (const art of newSeedArticles) {
+    const exists = await client.query(`SELECT EXISTS (SELECT 1 FROM "Article" WHERE "id" = $1)`, [art.id]);
+    if (!exists.rows[0].exists) {
+      const sku = `ART-${String(nextSkuNum).padStart(3, '0')}`;
+      await client.query(
+        `INSERT INTO "Article" ("id", "name", "description", "sku", "category", "productGroup", "productSubGroup", "avgPurchasePrice", "unit", "minStockLevel", "currentStock", "imageUrl", "isActive", "notes", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5::"ArticleCategory", $6, $7, $8, $9, $10, 0, NULL, true, NULL, NOW(), NOW())`,
+        [art.id, art.name, art.desc, sku, art.category, art.group, art.sub, art.price, art.unit, art.min]
+      );
+      nextSkuNum++;
+      console.log(`Migration 13: Created article ${art.name} (${sku}).`);
+    }
   }
+
+  // Supplier links (only insert if both article and supplier exist)
+  const supplierLinks = [
+    { id: 'as-lc421-amazon', articleId: 'art-brother-lc421vp', supplierId: 'sup-amazon', price: 35.70, lead: 3 },
+    { id: 'as-hp-dock-galaxus', articleId: 'art-hp-usbc-g5-dock', supplierId: 'sup-galaxus', price: 117.81, lead: 5 },
+    { id: 'as-brio100-galaxus', articleId: 'art-logitech-brio100', supplierId: 'sup-galaxus', price: 39.27, lead: 5 },
+  ];
+
+  for (const link of supplierLinks) {
+    const artExists = await client.query(`SELECT EXISTS (SELECT 1 FROM "Article" WHERE "id" = $1)`, [link.articleId]);
+    const supExists = await client.query(`SELECT EXISTS (SELECT 1 FROM "Supplier" WHERE "id" = $1)`, [link.supplierId]);
+    if (artExists.rows[0].exists && supExists.rows[0].exists) {
+      await client.query(
+        `INSERT INTO "ArticleSupplier" ("id", "articleId", "supplierId", "supplierSku", "unitPrice", "currency", "leadTimeDays", "minOrderQty", "isPreferred", "lastOrderDate", "notes", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, NULL, $4, 'EUR', $5, 1, true, NULL, NULL, NOW(), NOW())
+         ON CONFLICT DO NOTHING`,
+        [link.id, link.articleId, link.supplierId, link.price, link.lead]
+      );
+    }
+  }
+  console.log("Migration 13: Seed articles checked.");
 }
 
 main().catch((err) => {
