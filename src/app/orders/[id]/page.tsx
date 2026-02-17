@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Send, UserCheck, MapPin, User, Building2, FileText, Smartphone, CardSim } from "lucide-react";
+import { ArrowLeft, Send, UserCheck, MapPin, User, Building2, FileText, Smartphone, CardSim, Wrench, ShoppingCart, Check, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getOrderById } from "@/queries/orders";
-import { orderStatusLabels, orderStatusColors, deliveryMethodLabels, mobilfunkTypeLabels, simTypeLabels, mobilfunkTariffLabels } from "@/types/orders";
+import { orderStatusLabels, orderStatusColors, deliveryMethodLabels, mobilfunkTypeLabels, simTypeLabels, mobilfunkTariffLabels, canCancelOrder } from "@/types/orders";
 import { articleCategoryLabels } from "@/types/inventory";
 import { StockLight } from "@/components/orders/stock-light";
 import { OrderStatusActions } from "@/components/orders/order-status-actions";
@@ -37,6 +37,19 @@ export default async function OrderDetailPage({
     ? [order.shippingCompany, order.shippingStreet, [order.shippingZip, order.shippingCity].filter(Boolean).join(" ")].filter(Boolean).join(", ")
     : null;
 
+  // Progress calculations
+  const totalItems = order.items.reduce((sum, i) => sum + i.quantity, 0);
+  const pickedItems = order.items.reduce((sum, i) => sum + i.pickedQty, 0);
+  const totalMf = order.mobilfunk.length;
+  const setupMf = order.mobilfunk.filter((mf) => mf.setupDone).length;
+  const orderableItems = order.items.filter((i) => i.needsOrdering);
+  const orderedItems = orderableItems.filter((i) => i.orderedAt).length;
+  const orderedMf = order.mobilfunk.filter((mf) => mf.ordered).length;
+  const receivedItems = orderableItems.filter((i) => i.receivedQty >= i.quantity).length;
+  const receivedMf = order.mobilfunk.filter((mf) => mf.received).length;
+
+  const showCancel = canCancelOrder(order);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -49,8 +62,8 @@ export default async function OrderDetailPage({
               </Link>
             </Button>
             <h1 className="text-2xl font-bold font-mono">{order.orderNumber}</h1>
-            <span className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold ${orderStatusColors[order.status]}`}>
-              {orderStatusLabels[order.status]}
+            <span className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold ${orderStatusColors[order.computedStatus]}`}>
+              {orderStatusLabels[order.computedStatus]}
             </span>
             <StockLight availability={order.stockAvailability} size="lg" showLabel />
           </div>
@@ -58,7 +71,7 @@ export default async function OrderDetailPage({
             Erstellt am {new Date(order.createdAt).toLocaleString("de-DE")}
           </p>
         </div>
-        <OrderStatusActions orderId={order.id} currentStatus={order.status} />
+        <OrderStatusActions orderId={order.id} currentStatus={order.computedStatus} canCancel={showCancel} />
       </div>
 
       {/* Info Cards */}
@@ -127,6 +140,82 @@ export default async function OrderDetailPage({
         </Card>
       </div>
 
+      {/* Progress Bars */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Fortschritt</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Techniker */}
+          <div>
+            <div className="flex items-center justify-between text-sm mb-1">
+              <span className="flex items-center gap-1.5">
+                <Wrench className="h-3.5 w-3.5 text-blue-500" />
+                Techniker
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {pickedItems}/{totalItems} Artikel
+                {totalMf > 0 && <>, {setupMf}/{totalMf} Mobilfunk</>}
+                {order.techDoneAt && <> &middot; <Check className="inline h-3 w-3 text-emerald-500" /> Abgeschlossen</>}
+              </span>
+            </div>
+            <ProgressBar value={totalItems > 0 ? pickedItems / totalItems : 1} />
+          </div>
+
+          {/* Beschaffung */}
+          {(orderableItems.length > 0 || totalMf > 0) && (
+            <div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="flex items-center gap-1.5">
+                  <ShoppingCart className="h-3.5 w-3.5 text-amber-500" />
+                  Beschaffung
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {orderedItems}/{orderableItems.length} Artikel
+                  {totalMf > 0 && <>, {orderedMf}/{totalMf} Mobilfunk</>}
+                </span>
+              </div>
+              <ProgressBar value={(orderableItems.length + totalMf) > 0 ? (orderedItems + orderedMf) / (orderableItems.length + totalMf) : 1} />
+            </div>
+          )}
+
+          {/* Wareneingang */}
+          {(orderableItems.length > 0 || totalMf > 0) && (
+            <div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5 text-emerald-500" />
+                  Wareneingang
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {receivedItems}/{orderableItems.length} Artikel
+                  {totalMf > 0 && <>, {receivedMf}/{totalMf} Mobilfunk</>}
+                </span>
+              </div>
+              <ProgressBar value={(orderableItems.length + totalMf) > 0 ? (receivedItems + receivedMf) / (orderableItems.length + totalMf) : 1} />
+            </div>
+          )}
+
+          {/* Quick Links */}
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/techniker/${order.id}`}>
+                <Wrench className="mr-1.5 h-3.5 w-3.5" />
+                Techniker-Bereich
+                <ExternalLink className="ml-1.5 h-3 w-3" />
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/procurement">
+                <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+                Beschaffung
+                <ExternalLink className="ml-1.5 h-3 w-3" />
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Versandadresse Detail (nur bei Versand) */}
       {order.deliveryMethod === "SHIPPING" && order.shippingStreet && (
         <Card>
@@ -144,6 +233,11 @@ export default async function OrderDetailPage({
                 </p>
               </div>
             </div>
+            {order.trackingNumber && (
+              <div className="mt-3 text-xs text-muted-foreground">
+                Sendungsnr: <span className="font-mono font-semibold">{order.trackingNumber}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -164,13 +258,14 @@ export default async function OrderDetailPage({
                   <TableHead className="py-2 text-xs font-semibold uppercase tracking-wider">Art.Nr.</TableHead>
                   <TableHead className="py-2 text-xs font-semibold uppercase tracking-wider">Artikel</TableHead>
                   <TableHead className="py-2 text-xs font-semibold uppercase tracking-wider">Kategorie</TableHead>
-                  <TableHead className="py-2 text-xs font-semibold uppercase tracking-wider text-right">Bestellt</TableHead>
-                  <TableHead className="py-2 text-xs font-semibold uppercase tracking-wider text-right">Am Lager</TableHead>
+                  <TableHead className="py-2 text-xs font-semibold uppercase tracking-wider text-right">Menge</TableHead>
+                  <TableHead className="py-2 text-xs font-semibold uppercase tracking-wider text-center">Entnommen</TableHead>
+                  <TableHead className="py-2 text-xs font-semibold uppercase tracking-wider text-center">Bestellt</TableHead>
+                  <TableHead className="py-2 text-xs font-semibold uppercase tracking-wider text-center">Empfangen</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {order.items.map((item) => {
-                  // Free text item (no article linked)
                   if (!item.article) {
                     return (
                       <TableRow key={item.id} className="border-border/30 bg-amber-50/30 dark:bg-amber-950/10">
@@ -191,11 +286,13 @@ export default async function OrderDetailPage({
                             Freitext
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right font-mono text-sm font-semibold">
-                          {item.quantity} Stk
+                        <TableCell className="text-right font-mono text-sm">{item.quantity}</TableCell>
+                        <TableCell className="text-center"><X className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" /></TableCell>
+                        <TableCell className="text-center">
+                          {item.orderedAt ? <Check className="h-3.5 w-3.5 text-emerald-500 mx-auto" /> : <X className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-sm text-red-600 font-semibold">
-                          –
+                        <TableCell className="text-center">
+                          {item.receivedQty >= item.quantity ? <Check className="h-3.5 w-3.5 text-emerald-500 mx-auto" /> : <X className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />}
                         </TableCell>
                       </TableRow>
                     );
@@ -227,11 +324,47 @@ export default async function OrderDetailPage({
                           {articleCategoryLabels[item.article.category]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right font-mono text-sm font-semibold">
+                      <TableCell className="text-right font-mono text-sm">
                         {item.quantity} {item.article.unit}
                       </TableCell>
-                      <TableCell className={`text-right font-mono text-sm ${inStock ? "text-emerald-600" : "text-red-600 font-semibold"}`}>
-                        {item.article.currentStock} {item.article.unit}
+                      <TableCell className="text-center">
+                        {item.pickedQty >= item.quantity ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-500 mx-auto" />
+                        ) : item.pickedQty > 0 ? (
+                          <span className="text-xs font-mono">{item.pickedQty}/{item.quantity}</span>
+                        ) : (
+                          <X className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.orderedAt ? (
+                          <div className="text-center">
+                            <Check className="h-3.5 w-3.5 text-emerald-500 mx-auto" />
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(item.orderedAt).toLocaleDateString("de-DE")}
+                            </span>
+                          </div>
+                        ) : item.needsOrdering ? (
+                          <span className="text-[10px] text-amber-600">ausstehend</span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/40">–</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.receivedQty >= item.quantity ? (
+                          <div className="text-center">
+                            <Check className="h-3.5 w-3.5 text-emerald-500 mx-auto" />
+                            {item.receivedAt && (
+                              <span className="text-[10px] text-muted-foreground">
+                                {new Date(item.receivedAt).toLocaleDateString("de-DE")}
+                              </span>
+                            )}
+                          </div>
+                        ) : item.needsOrdering ? (
+                          <span className="text-[10px] text-muted-foreground/40">ausstehend</span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/40">–</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -256,7 +389,7 @@ export default async function OrderDetailPage({
               <div
                 key={mf.id}
                 className={`flex items-start gap-4 rounded-lg border p-4 transition-colors ${
-                  mf.delivered
+                  mf.setupDone
                     ? "border-emerald-200 bg-emerald-50/30 dark:border-emerald-800 dark:bg-emerald-950/20"
                     : "border-violet-200 bg-violet-50/30 dark:border-violet-800 dark:bg-violet-950/20"
                 }`}
@@ -287,26 +420,36 @@ export default async function OrderDetailPage({
                         {mobilfunkTariffLabels[mf.tariff]}
                       </Badge>
                     )}
-                    {mf.delivered && (
+                    {mf.setupDone && (
                       <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800" variant="outline">
-                        Geliefert
+                        Eingerichtet
+                      </Badge>
+                    )}
+                    {mf.ordered && (
+                      <Badge className="text-[10px] bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800" variant="outline">
+                        Bestellt
+                      </Badge>
+                    )}
+                    {mf.received && (
+                      <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800" variant="outline">
+                        Empfangen
                       </Badge>
                     )}
                   </div>
-                  {(mf.phoneNote || mf.simNote) && (
-                    <div className="flex gap-4 text-xs text-muted-foreground">
-                      {mf.phoneNote && (
-                        <span>
-                          <span className="font-medium text-foreground">Handy:</span> {mf.phoneNote}
-                        </span>
-                      )}
-                      {mf.simNote && (
-                        <span>
-                          <span className="font-medium text-foreground">SIM:</span> {mf.simNote}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex gap-4 text-xs text-muted-foreground flex-wrap">
+                    {mf.phoneNote && (
+                      <span><span className="font-medium text-foreground">Handy:</span> {mf.phoneNote}</span>
+                    )}
+                    {mf.simNote && (
+                      <span><span className="font-medium text-foreground">SIM:</span> {mf.simNote}</span>
+                    )}
+                    {mf.imei && (
+                      <span><span className="font-medium text-foreground">IMEI:</span> <span className="font-mono">{mf.imei}</span></span>
+                    )}
+                    {mf.phoneNumber && (
+                      <span><span className="font-medium text-foreground">Nr:</span> <span className="font-mono">{mf.phoneNumber}</span></span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -327,6 +470,20 @@ export default async function OrderDetailPage({
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+function ProgressBar({ value }: { value: number }) {
+  const pct = Math.min(Math.max(value * 100, 0), 100);
+  return (
+    <div className="h-2 rounded-full bg-muted overflow-hidden">
+      <div
+        className={`h-full rounded-full transition-all ${
+          pct >= 100 ? "bg-emerald-500" : pct > 0 ? "bg-primary" : "bg-muted"
+        }`}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }

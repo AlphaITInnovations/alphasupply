@@ -41,6 +41,7 @@ CREATE TABLE "SerialNumber" (
     "status" "SerialNumberStatus" NOT NULL DEFAULT 'IN_STOCK',
     "isUsed" BOOLEAN NOT NULL DEFAULT false,
     "notes" TEXT,
+    "orderItemId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "locationId" TEXT,
@@ -78,6 +79,8 @@ CREATE TABLE "StockMovement" (
     "quantity" INTEGER NOT NULL,
     "reason" TEXT,
     "performedBy" TEXT,
+    "orderId" TEXT,
+    "orderItemId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "StockMovement_pkey" PRIMARY KEY ("id")
@@ -169,6 +172,12 @@ CREATE TABLE "Order" (
     "shippingCity" TEXT,
     "pickupBy" TEXT,
     "notes" TEXT,
+    "trackingNumber" TEXT,
+    "shippedAt" TIMESTAMP(3),
+    "shippedBy" TEXT,
+    "technicianName" TEXT,
+    "techDoneAt" TIMESTAMP(3),
+    "procDoneAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -182,6 +191,17 @@ CREATE TABLE "OrderItem" (
     "articleId" TEXT,
     "freeText" TEXT,
     "quantity" INTEGER NOT NULL,
+    "pickedQty" INTEGER NOT NULL DEFAULT 0,
+    "serialNumberId" TEXT,
+    "pickedBy" TEXT,
+    "pickedAt" TIMESTAMP(3),
+    "needsOrdering" BOOLEAN NOT NULL DEFAULT false,
+    "supplierId" TEXT,
+    "supplierOrderNo" TEXT,
+    "orderedAt" TIMESTAMP(3),
+    "orderedBy" TEXT,
+    "receivedQty" INTEGER NOT NULL DEFAULT 0,
+    "receivedAt" TIMESTAMP(3),
 
     CONSTRAINT "OrderItem_pkey" PRIMARY KEY ("id")
 );
@@ -203,6 +223,17 @@ CREATE TABLE "OrderMobilfunk" (
     "phoneNote" TEXT,
     "simNote" TEXT,
     "delivered" BOOLEAN NOT NULL DEFAULT false,
+    "imei" TEXT,
+    "phoneNumber" TEXT,
+    "setupDone" BOOLEAN NOT NULL DEFAULT false,
+    "setupBy" TEXT,
+    "setupAt" TIMESTAMP(3),
+    "ordered" BOOLEAN NOT NULL DEFAULT false,
+    "orderedBy" TEXT,
+    "orderedAt" TIMESTAMP(3),
+    "providerOrderNo" TEXT,
+    "received" BOOLEAN NOT NULL DEFAULT false,
+    "receivedAt" TIMESTAMP(3),
 
     CONSTRAINT "OrderMobilfunk_pkey" PRIMARY KEY ("id")
 );
@@ -216,13 +247,18 @@ ALTER TABLE "SerialNumber" ADD CONSTRAINT "SerialNumber_locationId_fkey" FOREIGN
 ALTER TABLE "StockLocation" ADD CONSTRAINT "StockLocation_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "StockLocation" ADD CONSTRAINT "StockLocation_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "WarehouseLocation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+ALTER TABLE "SerialNumber" ADD CONSTRAINT "SerialNumber_orderItemId_fkey" FOREIGN KEY ("orderItemId") REFERENCES "OrderItem"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
 ALTER TABLE "StockMovement" ADD CONSTRAINT "StockMovement_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "StockMovement" ADD CONSTRAINT "StockMovement_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "StockMovement" ADD CONSTRAINT "StockMovement_orderItemId_fkey" FOREIGN KEY ("orderItemId") REFERENCES "OrderItem"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 ALTER TABLE "ArticleSupplier" ADD CONSTRAINT "ArticleSupplier_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ArticleSupplier" ADD CONSTRAINT "ArticleSupplier_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON UPDATE CASCADE;
+ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "OrderMobilfunk" ADD CONSTRAINT "OrderMobilfunk_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Seed: Lieferanten

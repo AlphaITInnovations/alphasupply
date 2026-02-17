@@ -4,8 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Package,
-  ShoppingCart,
-  Truck,
   ClipboardList,
   LayoutDashboard,
   Warehouse,
@@ -15,6 +13,9 @@ import {
   PackagePlus,
   Menu,
   X,
+  Wrench,
+  ShoppingCart,
+  Smartphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -40,19 +41,10 @@ const navigation = [
     name: "Aufträge",
     items: [
       { name: "Auftragsliste", href: "/orders", icon: ClipboardList },
+      { name: "Techniker", href: "/techniker", icon: Wrench },
+      { name: "Beschaffung", href: "/procurement", icon: ShoppingCart },
+      { name: "Mobilfunk", href: "/mobilfunk", icon: Smartphone },
     ],
-  },
-  {
-    name: "Beschaffung",
-    href: "/procurement",
-    icon: ShoppingCart,
-    disabled: true,
-  },
-  {
-    name: "Versand",
-    href: "/shipping",
-    icon: Truck,
-    disabled: true,
   },
 ];
 
@@ -153,21 +145,6 @@ export function Sidebar() {
 
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href!);
             const Icon = item.icon!;
-
-            if (item.disabled) {
-              return (
-                <div
-                  key={item.name}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-sidebar-foreground/25 cursor-not-allowed"
-                >
-                  <Icon className="h-[18px] w-[18px]" />
-                  {item.name}
-                  <span className="ml-auto rounded-md bg-white/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/30">
-                    Bald
-                  </span>
-                </div>
-              );
-            }
 
             return (
               <Link

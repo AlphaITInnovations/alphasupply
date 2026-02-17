@@ -73,3 +73,77 @@ export type MobilfunkItemInput = z.infer<typeof mobilfunkItemSchema>;
 
 // Stock availability for an order
 export type StockAvailability = "green" | "yellow" | "red";
+
+// ─── Order Status Computation ──────────────────────────
+
+type OrderForStatus = {
+  status: string;
+  items: {
+    quantity: number;
+    pickedQty: number;
+    needsOrdering: boolean;
+    orderedAt: Date | null;
+    receivedQty: number;
+  }[];
+  mobilfunk: {
+    setupDone: boolean;
+    ordered: boolean;
+    received: boolean;
+  }[];
+  trackingNumber: string | null;
+  techDoneAt: Date | null;
+  deliveryMethod: string;
+};
+
+export function computeOrderStatus(order: OrderForStatus): string {
+  if (order.status === "CANCELLED") return "CANCELLED";
+
+  const hasArticles = order.items.length > 0;
+  const hasMobilfunk = order.mobilfunk.length > 0;
+
+  if (!hasArticles && !hasMobilfunk) return "NEW";
+
+  const needsOrdering = order.items.some((i) => i.needsOrdering) || hasMobilfunk;
+
+  // Techniker-Stream
+  const allPicked = order.items.every((i) => i.pickedQty >= i.quantity);
+  const allMfSetup = order.mobilfunk.every((mf) => mf.setupDone);
+  const isShipped = !!order.trackingNumber || !!order.techDoneAt;
+  const techDone = allPicked && allMfSetup && (isShipped || (!hasArticles && !hasMobilfunk));
+
+  // Bestell-Stream
+  const orderableItems = order.items.filter((i) => i.needsOrdering);
+  const allOrdered = orderableItems.every((i) => i.orderedAt) &&
+    order.mobilfunk.every((mf) => mf.ordered);
+  const procDone = !needsOrdering || allOrdered;
+
+  // Wareneingang-Stream
+  const allReceived = orderableItems.every((i) => i.receivedQty >= i.quantity) &&
+    order.mobilfunk.every((mf) => !mf.ordered || mf.received);
+  const recvDone = !needsOrdering || allReceived;
+
+  if (techDone && procDone && recvDone) return "COMPLETED";
+
+  // Any progress at all?
+  const anyPicked = order.items.some((i) => i.pickedQty > 0);
+  const anyOrdered = orderableItems.some((i) => i.orderedAt);
+  const anyReceived = orderableItems.some((i) => i.receivedQty > 0);
+  const anyMfSetup = order.mobilfunk.some((mf) => mf.setupDone);
+  const anyMfOrdered = order.mobilfunk.some((mf) => mf.ordered);
+
+  if (anyPicked || anyOrdered || anyReceived || anyMfSetup || anyMfOrdered) {
+    return "IN_PROGRESS";
+  }
+
+  return "NEW";
+}
+
+// ─── Cancellation Check ────────────────────────────────
+
+export function canCancelOrder(order: OrderForStatus): boolean {
+  if (order.status === "CANCELLED" || order.status === "COMPLETED") return false;
+  const anyOrdered = order.items.some((i) => i.orderedAt);
+  const anyPicked = order.items.some((i) => i.pickedQty > 0);
+  const anyMfOrdered = order.mobilfunk.some((mf) => mf.ordered);
+  return !anyOrdered && !anyPicked && !anyMfOrdered;
+}

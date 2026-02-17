@@ -219,7 +219,7 @@ async function runMigrations(client) {
     console.log("Migration: Added incomingStock to Article.");
   }
 
-  // Migration 11: Create OrderMobilfunk table
+  // Migration 11: Create OrderMobilfunk table (NOTE: keep this before migration 12)
   const hasMobilfunkTable = await client.query(
     `SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'OrderMobilfunk')`
   );
@@ -243,6 +243,63 @@ async function runMigrations(client) {
       ALTER TABLE "OrderMobilfunk" ADD CONSTRAINT "OrderMobilfunk_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
     `);
     console.log("Migration: Created OrderMobilfunk table.");
+  }
+  // Migration 12: Parallel order lifecycle fields
+  const hasTrackingNumber = await client.query(
+    `SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'Order' AND column_name = 'trackingNumber')`
+  );
+  if (!hasTrackingNumber.rows[0].exists) {
+    // Order: new lifecycle fields
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "trackingNumber" TEXT`);
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "shippedAt" TIMESTAMP(3)`);
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "shippedBy" TEXT`);
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "technicianName" TEXT`);
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "techDoneAt" TIMESTAMP(3)`);
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "procDoneAt" TIMESTAMP(3)`);
+
+    // OrderItem: techniker stream
+    await client.query(`ALTER TABLE "OrderItem" ADD COLUMN "pickedQty" INTEGER NOT NULL DEFAULT 0`);
+    await client.query(`ALTER TABLE "OrderItem" ADD COLUMN "serialNumberId" TEXT`);
+    await client.query(`ALTER TABLE "OrderItem" ADD COLUMN "pickedBy" TEXT`);
+    await client.query(`ALTER TABLE "OrderItem" ADD COLUMN "pickedAt" TIMESTAMP(3)`);
+    // OrderItem: bestell stream
+    await client.query(`ALTER TABLE "OrderItem" ADD COLUMN "needsOrdering" BOOLEAN NOT NULL DEFAULT false`);
+    await client.query(`ALTER TABLE "OrderItem" ADD COLUMN "supplierId" TEXT`);
+    await client.query(`ALTER TABLE "OrderItem" ADD COLUMN "supplierOrderNo" TEXT`);
+    await client.query(`ALTER TABLE "OrderItem" ADD COLUMN "orderedAt" TIMESTAMP(3)`);
+    await client.query(`ALTER TABLE "OrderItem" ADD COLUMN "orderedBy" TEXT`);
+    // OrderItem: wareneingang stream
+    await client.query(`ALTER TABLE "OrderItem" ADD COLUMN "receivedQty" INTEGER NOT NULL DEFAULT 0`);
+    await client.query(`ALTER TABLE "OrderItem" ADD COLUMN "receivedAt" TIMESTAMP(3)`);
+    // OrderItem: supplier FK
+    await client.query(`ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE SET NULL ON UPDATE CASCADE`);
+
+    // OrderMobilfunk: techniker setup
+    await client.query(`ALTER TABLE "OrderMobilfunk" ADD COLUMN "imei" TEXT`);
+    await client.query(`ALTER TABLE "OrderMobilfunk" ADD COLUMN "phoneNumber" TEXT`);
+    await client.query(`ALTER TABLE "OrderMobilfunk" ADD COLUMN "setupDone" BOOLEAN NOT NULL DEFAULT false`);
+    await client.query(`ALTER TABLE "OrderMobilfunk" ADD COLUMN "setupBy" TEXT`);
+    await client.query(`ALTER TABLE "OrderMobilfunk" ADD COLUMN "setupAt" TIMESTAMP(3)`);
+    // OrderMobilfunk: bestell stream
+    await client.query(`ALTER TABLE "OrderMobilfunk" ADD COLUMN "ordered" BOOLEAN NOT NULL DEFAULT false`);
+    await client.query(`ALTER TABLE "OrderMobilfunk" ADD COLUMN "orderedBy" TEXT`);
+    await client.query(`ALTER TABLE "OrderMobilfunk" ADD COLUMN "orderedAt" TIMESTAMP(3)`);
+    await client.query(`ALTER TABLE "OrderMobilfunk" ADD COLUMN "providerOrderNo" TEXT`);
+    // OrderMobilfunk: wareneingang stream
+    await client.query(`ALTER TABLE "OrderMobilfunk" ADD COLUMN "received" BOOLEAN NOT NULL DEFAULT false`);
+    await client.query(`ALTER TABLE "OrderMobilfunk" ADD COLUMN "receivedAt" TIMESTAMP(3)`);
+
+    // StockMovement: order audit trail
+    await client.query(`ALTER TABLE "StockMovement" ADD COLUMN "orderId" TEXT`);
+    await client.query(`ALTER TABLE "StockMovement" ADD COLUMN "orderItemId" TEXT`);
+    await client.query(`ALTER TABLE "StockMovement" ADD CONSTRAINT "StockMovement_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE SET NULL ON UPDATE CASCADE`);
+    await client.query(`ALTER TABLE "StockMovement" ADD CONSTRAINT "StockMovement_orderItemId_fkey" FOREIGN KEY ("orderItemId") REFERENCES "OrderItem"("id") ON DELETE SET NULL ON UPDATE CASCADE`);
+
+    // SerialNumber: order item link
+    await client.query(`ALTER TABLE "SerialNumber" ADD COLUMN "orderItemId" TEXT`);
+    await client.query(`ALTER TABLE "SerialNumber" ADD CONSTRAINT "SerialNumber_orderItemId_fkey" FOREIGN KEY ("orderItemId") REFERENCES "OrderItem"("id") ON DELETE SET NULL ON UPDATE CASCADE`);
+
+    console.log("Migration 12: Added parallel order lifecycle fields.");
   }
 }
 

@@ -11,6 +11,9 @@ import {
   PackagePlus,
   ClipboardList,
   Plus,
+  Wrench,
+  ShoppingCart,
+  Smartphone,
 } from "lucide-react";
 
 const pageConfig: Record<string, { title: string; description: string; icon: React.ElementType }> = {
@@ -22,6 +25,9 @@ const pageConfig: Record<string, { title: string; description: string; icon: Rea
   "/inventory/suppliers": { title: "Lieferanten", description: "Lieferantenstammdaten verwalten", icon: Factory },
   "/orders/new": { title: "Neuer Auftrag", description: "Auftrag manuell anlegen", icon: Plus },
   "/orders": { title: "Aufträge", description: "Aufträge verwalten und verfolgen", icon: ClipboardList },
+  "/techniker": { title: "Techniker", description: "Aufträge bearbeiten und Artikel entnehmen", icon: Wrench },
+  "/procurement": { title: "Beschaffung", description: "Nachbestellungen verwalten", icon: ShoppingCart },
+  "/mobilfunk": { title: "Mobilfunk", description: "Eingerichtete Geräte im Umlauf", icon: Smartphone },
 };
 
 function getPageConfig(pathname: string) {
@@ -33,8 +39,11 @@ function getPageConfig(pathname: string) {
   if (pathname.startsWith("/inventory/movements")) return pageConfig["/inventory/movements"];
   if (pathname.startsWith("/inventory/suppliers")) return pageConfig["/inventory/suppliers"];
   if (pathname.startsWith("/inventory")) return pageConfig["/inventory"];
+  if (pathname.startsWith("/techniker")) return pageConfig["/techniker"];
   if (pathname.startsWith("/orders/new")) return pageConfig["/orders/new"];
   if (pathname.startsWith("/orders")) return pageConfig["/orders"];
+  if (pathname.startsWith("/procurement")) return pageConfig["/procurement"];
+  if (pathname.startsWith("/mobilfunk")) return pageConfig["/mobilfunk"];
   return pageConfig["/"];
 }
 

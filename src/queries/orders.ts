@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { StockAvailability } from "@/types/orders";
+import { computeOrderStatus } from "@/types/orders";
 
 export async function getOrders(options?: {
   status?: string;
@@ -40,11 +41,14 @@ export async function getOrders(options?: {
     orderBy: { createdAt: "desc" },
   });
 
-  // Calculate stock availability per order
-  return orders.map((order) => ({
-    ...order,
-    stockAvailability: calculateStockAvailability(order.items),
-  }));
+  return orders.map((order) => {
+    const computed = computeOrderStatus(order);
+    return {
+      ...order,
+      computedStatus: computed,
+      stockAvailability: calculateStockAvailability(order.items),
+    };
+  });
 }
 
 export async function getOrderById(id: string) {
@@ -66,6 +70,19 @@ export async function getOrderById(id: string) {
               productSubGroup: true,
             },
           },
+          supplier: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          serialNumbers: {
+            select: {
+              id: true,
+              serialNo: true,
+              status: true,
+            },
+          },
         },
       },
       mobilfunk: true,
@@ -74,8 +91,10 @@ export async function getOrderById(id: string) {
 
   if (!order) return null;
 
+  const computed = computeOrderStatus(order);
   return {
     ...order,
+    computedStatus: computed,
     stockAvailability: calculateStockAvailability(order.items),
   };
 }

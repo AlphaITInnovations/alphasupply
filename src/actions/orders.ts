@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { createOrderSchema } from "@/types/orders";
+import { createOrderSchema, computeOrderStatus, canCancelOrder } from "@/types/orders";
 import type { MobilfunkItemInput } from "@/types/orders";
 import { getNextOrderNumber } from "@/queries/orders";
 
@@ -31,16 +31,37 @@ export async function createOrder(data: {
   try {
     const orderNumber = await getNextOrderNumber();
 
+    // Determine needsOrdering for each item by looking up article category
+    const articleIds = items.filter((i) => i.articleId).map((i) => i.articleId!);
+    const articles = articleIds.length > 0
+      ? await db.article.findMany({
+          where: { id: { in: articleIds } },
+          select: { id: true, category: true },
+        })
+      : [];
+    const articleMap = new Map(articles.map((a) => [a.id, a]));
+
     const order = await db.order.create({
       data: {
         ...orderData,
         orderNumber,
         items: {
-          create: items.map((item) => ({
-            articleId: item.articleId || null,
-            freeText: item.freeText || null,
-            quantity: item.quantity,
-          })),
+          create: items.map((item) => {
+            let needsOrdering = true; // default: freeText items need ordering
+            if (item.articleId) {
+              const article = articleMap.get(item.articleId);
+              if (article) {
+                // CONSUMABLE = no ordering needed; SERIALIZED + STANDARD = needs ordering
+                needsOrdering = article.category !== "CONSUMABLE";
+              }
+            }
+            return {
+              articleId: item.articleId || null,
+              freeText: item.freeText || null,
+              quantity: item.quantity,
+              needsOrdering,
+            };
+          }),
         },
         ...(mobilfunk && mobilfunk.length > 0 && {
           mobilfunk: {
@@ -85,6 +106,22 @@ export async function updateOrderStatus(id: string, status: string) {
   }
 }
 
+export async function syncOrderStatus(orderId: string) {
+  const order = await db.order.findUnique({
+    where: { id: orderId },
+    include: { items: true, mobilfunk: true },
+  });
+  if (!order) return;
+
+  const computed = computeOrderStatus(order);
+  if (computed !== order.status) {
+    await db.order.update({
+      where: { id: orderId },
+      data: { status: computed as "NEW" | "IN_PROGRESS" | "READY" | "COMPLETED" | "CANCELLED" },
+    });
+  }
+}
+
 export async function toggleMobilfunkDelivered(id: string, delivered: boolean) {
   try {
     await db.orderMobilfunk.update({
@@ -99,5 +136,16 @@ export async function toggleMobilfunkDelivered(id: string, delivered: boolean) {
 }
 
 export async function cancelOrder(id: string) {
+  const order = await db.order.findUnique({
+    where: { id },
+    include: { items: true, mobilfunk: true },
+  });
+
+  if (!order) return { error: "Auftrag nicht gefunden." };
+
+  if (!canCancelOrder(order)) {
+    return { error: "Auftrag kann nicht storniert werden. Es wurden bereits Artikel entnommen oder bestellt." };
+  }
+
   return updateOrderStatus(id, "CANCELLED");
 }

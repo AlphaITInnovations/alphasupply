@@ -94,19 +94,21 @@ model Article {
 // ─── SERIENNUMMERN ───────────────────────────────────────
 
 model SerialNumber {
-  id         String             @id @default(cuid())
-  serialNo   String             @unique
-  articleId  String
-  status     SerialNumberStatus @default(IN_STOCK)
-  isUsed     Boolean            @default(false) // Gebraucht = wird NICHT nachbestellt
-  notes      String?
+  id          String             @id @default(cuid())
+  serialNo    String             @unique
+  articleId   String
+  status      SerialNumberStatus @default(IN_STOCK)
+  isUsed      Boolean            @default(false) // Gebraucht = wird NICHT nachbestellt
+  notes       String?
+  orderItemId String?            // Verknüpfung zur Auftragsposition (bei Entnahme)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  article  Article            @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  location WarehouseLocation? @relation(fields: [locationId], references: [id])
+  article    Article            @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  location   WarehouseLocation? @relation(fields: [locationId], references: [id])
   locationId String?
+  orderItem  OrderItem?         @relation(fields: [orderItemId], references: [id])
 
   @@index([articleId])
   @@index([status])
@@ -150,10 +152,14 @@ model StockMovement {
   quantity    Int
   reason      String?
   performedBy String?
+  orderId     String?           // Verknüpfung zum Auftrag (für Audit-Trail)
+  orderItemId String?           // Verknüpfung zur Position
 
   createdAt DateTime @default(now())
 
-  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  article   Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  order     Order?     @relation(fields: [orderId], references: [id])
+  orderItem OrderItem? @relation(fields: [orderItemId], references: [id])
 
   @@index([articleId])
   @@index([type])
@@ -176,6 +182,7 @@ model Supplier {
   updatedAt DateTime @updatedAt
 
   articleSuppliers ArticleSupplier[]
+  orderItems       OrderItem[]
 }
 
 // ─── ARTIKEL-LIEFERANTEN ZUORDNUNG ───────────────────────
@@ -220,26 +227,50 @@ model Order {
   shippingCity    String?        // Stadt (nur bei SHIPPING)
   pickupBy        String?        // Nur bei PICKUP: wer holt ab
   notes           String?
+  trackingNumber  String?        // Sendungsnummer
+  shippedAt       DateTime?      // Versanddatum
+  shippedBy       String?        // Techniker der versendet hat
+  technicianName  String?        // Name des zugewiesenen Technikers
+  techDoneAt      DateTime?      // Techniker-Arbeit abgeschlossen
+  procDoneAt      DateTime?      // Beschaffung abgeschlossen
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items      OrderItem[]
-  mobilfunk  OrderMobilfunk[]
+  items          OrderItem[]
+  mobilfunk      OrderMobilfunk[]
+  stockMovements StockMovement[]
 
   @@index([status])
   @@index([createdAt])
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  articleId String? // Null wenn Freitext-Position
-  freeText  String? // Freitext-Beschreibung (z.B. von externen Tools)
-  quantity  Int
+  id              String    @id @default(cuid())
+  orderId         String
+  articleId       String?   // Null wenn Freitext-Position
+  freeText        String?   // Freitext-Beschreibung (z.B. von externen Tools)
+  quantity        Int
+  // Techniker-Stream
+  pickedQty       Int       @default(0)    // Entnommene Menge
+  serialNumberId  String?                  // Gewählte SN (nur SERIALIZED)
+  pickedBy        String?                  // Wer hat entnommen
+  pickedAt        DateTime?                // Wann entnommen
+  // Bestell-Stream
+  needsOrdering   Boolean   @default(false) // Muss nachbestellt werden (auto-berechnet)
+  supplierId      String?                   // Lieferant für Nachbestellung
+  supplierOrderNo String?                   // Bestellnummer beim Lieferanten
+  orderedAt       DateTime?                 // Wann bestellt
+  orderedBy       String?                   // Wer hat bestellt
+  // Wareneingang-Stream
+  receivedQty     Int       @default(0)    // Empfangene Menge
+  receivedAt      DateTime?                // Wann empfangen
 
-  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  article Article? @relation(fields: [articleId], references: [id])
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  article        Article?       @relation(fields: [articleId], references: [id])
+  supplier       Supplier?      @relation(fields: [supplierId], references: [id])
+  serialNumbers  SerialNumber[]
+  stockMovements StockMovement[]
 
   @@index([orderId])
 }
@@ -247,14 +278,28 @@ model OrderItem {
 // ─── MOBILFUNK (Tracking in Aufträgen) ─────────────────
 
 model OrderMobilfunk {
-  id        String           @id @default(cuid())
-  orderId   String
-  type      MobilfunkType    // Handy+SIM, nur Handy, nur SIM
-  simType   SimType?         // SIM oder eSIM (nur wenn SIM dabei)
-  tariff    MobilfunkTariff? // Tarif (nur wenn SIM dabei)
-  phoneNote String?          // z.B. Modellwunsch, Farbe etc.
-  simNote   String?          // z.B. Rufnummer, Portierung etc.
-  delivered Boolean          @default(false) // Bei Lieferung abgehakt
+  id              String           @id @default(cuid())
+  orderId         String
+  type            MobilfunkType    // Handy+SIM, nur Handy, nur SIM
+  simType         SimType?         // SIM oder eSIM (nur wenn SIM dabei)
+  tariff          MobilfunkTariff? // Tarif (nur wenn SIM dabei)
+  phoneNote       String?          // z.B. Modellwunsch, Farbe etc.
+  simNote         String?          // z.B. Rufnummer, Portierung etc.
+  delivered       Boolean          @default(false) // Bei Lieferung abgehakt
+  // Techniker-Setup
+  imei            String?          // IMEI-Nummer (bei PHONE_AND_SIM / PHONE_ONLY)
+  phoneNumber     String?          // Handynummer (bei PHONE_AND_SIM / SIM_ONLY)
+  setupDone       Boolean          @default(false) // Einrichtung abgeschlossen
+  setupBy         String?          // Wer hat eingerichtet
+  setupAt         DateTime?        // Wann eingerichtet
+  // Bestell-Stream
+  ordered         Boolean          @default(false) // Beim Provider bestellt
+  orderedBy       String?          // Wer hat bestellt
+  orderedAt       DateTime?        // Wann bestellt
+  providerOrderNo String?          // Bestellnummer beim Provider
+  // Wareneingang-Stream
+  received        Boolean          @default(false) // Ware empfangen
+  receivedAt      DateTime?        // Wann empfangen
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
