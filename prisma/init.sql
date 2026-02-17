@@ -17,9 +17,9 @@ CREATE TABLE "Article" (
     "description" TEXT,
     "sku" TEXT NOT NULL,
     "category" "ArticleCategory" NOT NULL,
-    "isUsed" BOOLEAN NOT NULL DEFAULT false,
     "productGroup" TEXT,
     "productSubGroup" TEXT,
+    "avgPurchasePrice" DECIMAL(10,2),
     "unit" TEXT NOT NULL DEFAULT 'Stk',
     "minStockLevel" INTEGER NOT NULL DEFAULT 0,
     "currentStock" INTEGER NOT NULL DEFAULT 0,
@@ -38,6 +38,7 @@ CREATE TABLE "SerialNumber" (
     "serialNo" TEXT NOT NULL,
     "articleId" TEXT NOT NULL,
     "status" "SerialNumberStatus" NOT NULL DEFAULT 'IN_STOCK',
+    "isUsed" BOOLEAN NOT NULL DEFAULT false,
     "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -158,17 +159,17 @@ INSERT INTO "Supplier" ("id", "name", "contactName", "email", "phone", "website"
 ON CONFLICT DO NOTHING;
 
 -- Seed: Testartikel
-INSERT INTO "Article" ("id", "name", "description", "sku", "category", "isUsed", "productGroup", "productSubGroup", "unit", "minStockLevel", "currentStock", "imageUrl", "isActive", "notes", "createdAt", "updatedAt") VALUES
-  ('art-jabra-ev2-65', 'Jabra Evolve2 65', 'Bluetooth-Headset mit ANC', 'ART-001', 'SERIALIZED', false, 'Headset', 'Bluetooth', 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-lenovo-t210', 'Lenovo T210 Tasche', '15.6 Zoll Laptop-Tasche', 'ART-002', 'STANDARD', false, 'Zubehör', 'Taschen', 'Stk', 3, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-dell-km5221w', 'Dell KM5221W', 'Wireless Tastatur-Maus-Set', 'ART-003', 'STANDARD', false, 'Peripherie', 'Tastatur-Maus', 'Stk', 5, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-yealink-t54w', 'Yealink SIP-T54W', 'IP-Telefon Schwarz 10 Zeilen LCD WLAN', 'ART-004', 'SERIALIZED', false, 'Telefon', 'IP-Telefon', 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-lenovo-neo50q', 'Lenovo ThinkCentre neo 50q Gen 4', 'Intel Core i5-13420H 16 GB DDR4 512 GB SSD Win11 Pro Mini-PC', 'ART-005', 'SERIALIZED', false, 'PC', 'Mini-PC', 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-lenovo-tb14-g7', 'Lenovo ThinkBook 14 G7 ARP', 'AMD Ryzen 5 7535HS 14" WUXGA 16 GB DDR5 512 GB SSD Win11 Pro', 'ART-006', 'SERIALIZED', false, 'Notebook', '14 Zoll', 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-lenovo-tb16-g7', 'Lenovo ThinkBook 16 G7 ARP', 'AMD Ryzen 5 7535HS 16" WUXGA 16 GB DDR5 512 GB SSD Win11 Pro', 'ART-007', 'SERIALIZED', false, 'Notebook', '16 Zoll', 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-iiyama-xub2792', 'iiyama ProLite XUB2792HSU-W6', '27" Full HD IPS Monitor 1920x1080 weiss', 'ART-008', 'SERIALIZED', false, 'Monitor', '27 Zoll', 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-brother-j1800dw', 'Brother DCP-J1800DW', 'Tintenstrahl-Multifunktionsdrucker A4 WLAN', 'ART-009', 'SERIALIZED', false, 'Drucker', 'Tintenstrahl', 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-lenovo-usbc-dock', 'Lenovo ThinkPad Universal USB-C Dock', 'USB-C Dockingstation 40AY0090EU', 'ART-010', 'SERIALIZED', false, 'Dockingstation', 'USB-C', 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW())
+INSERT INTO "Article" ("id", "name", "description", "sku", "category", "productGroup", "productSubGroup", "avgPurchasePrice", "unit", "minStockLevel", "currentStock", "imageUrl", "isActive", "notes", "createdAt", "updatedAt") VALUES
+  ('art-jabra-ev2-65', 'Jabra Evolve2 65', 'Bluetooth-Headset mit ANC', 'ART-001', 'SERIALIZED', 'Headset', 'Bluetooth', 126.04, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-lenovo-t210', 'Lenovo T210 Tasche', '15.6 Zoll Laptop-Tasche', 'ART-002', 'STANDARD', 'Zubehör', 'Taschen', 21.00, 'Stk', 3, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-dell-km5221w', 'Dell KM5221W', 'Wireless Tastatur-Maus-Set', 'ART-003', 'STANDARD', 'Peripherie', 'Tastatur-Maus', 37.81, 'Stk', 5, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-yealink-t54w', 'Yealink SIP-T54W', 'IP-Telefon Schwarz 10 Zeilen LCD WLAN', 'ART-004', 'SERIALIZED', 'Telefon', 'IP-Telefon', 104.12, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-lenovo-neo50q', 'Lenovo ThinkCentre neo 50q Gen 4', 'Intel Core i5-13420H 16 GB DDR4 512 GB SSD Win11 Pro Mini-PC', 'ART-005', 'SERIALIZED', 'PC', 'Mini-PC', 416.01, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-lenovo-tb14-g7', 'Lenovo ThinkBook 14 G7 ARP', 'AMD Ryzen 5 7535HS 14" WUXGA 16 GB DDR5 512 GB SSD Win11 Pro', 'ART-006', 'SERIALIZED', 'Notebook', '14 Zoll', 503.68, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-lenovo-tb16-g7', 'Lenovo ThinkBook 16 G7 ARP', 'AMD Ryzen 5 7535HS 16" WUXGA 16 GB DDR5 512 GB SSD Win11 Pro', 'ART-007', 'SERIALIZED', 'Notebook', '16 Zoll', 507.19, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-iiyama-xub2792', 'iiyama ProLite XUB2792HSU-W6', '27" Full HD IPS Monitor 1920x1080 weiss', 'ART-008', 'SERIALIZED', 'Monitor', '27 Zoll', 99.45, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-brother-j1800dw', 'Brother DCP-J1800DW', 'Tintenstrahl-Multifunktionsdrucker A4 WLAN', 'ART-009', 'SERIALIZED', 'Drucker', 'Tintenstrahl', 167.65, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-lenovo-usbc-dock', 'Lenovo ThinkPad Universal USB-C Dock', 'USB-C Dockingstation 40AY0090EU', 'ART-010', 'SERIALIZED', 'Dockingstation', 'USB-C', 103.99, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- Seed: Seriennummern (nur SERIALIZED Artikel)

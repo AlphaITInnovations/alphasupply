@@ -12,6 +12,7 @@ import {
   ArrowLeftRight,
   Factory,
   ListOrdered,
+  PackagePlus,
   Menu,
   X,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const navigation = [
     name: "Lager",
     items: [
       { name: "Lagerbestand", href: "/inventory/stock", icon: Warehouse },
+      { name: "Wareneingang", href: "/inventory/receiving", icon: PackagePlus },
       { name: "Artikelliste", href: "/inventory", icon: ListOrdered },
       { name: "Lagerbewegungen", href: "/inventory/movements", icon: ArrowLeftRight },
       { name: "Lieferanten", href: "/inventory/suppliers", icon: Factory },
@@ -114,7 +116,7 @@ export function Sidebar() {
                   </p>
                   <div className="space-y-0.5">
                     {item.items.map((subItem) => {
-                      const knownSubPaths = ["/inventory/stock", "/inventory/movements", "/inventory/suppliers", "/inventory/locations"];
+                      const knownSubPaths = ["/inventory/stock", "/inventory/receiving", "/inventory/movements", "/inventory/suppliers", "/inventory/locations"];
                       const isActive =
                         subItem.href === "/inventory"
                           ? pathname === "/inventory" ||

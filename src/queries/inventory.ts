@@ -147,6 +147,20 @@ export async function getStockArticles() {
   });
 }
 
+export async function getArticlesForReceiving() {
+  return db.article.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      name: true,
+      sku: true,
+      category: true,
+      unit: true,
+    },
+    orderBy: { name: "asc" },
+  });
+}
+
 export async function getDashboardStats() {
   const [
     totalArticles,

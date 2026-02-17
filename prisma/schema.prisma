@@ -38,9 +38,9 @@ model Article {
   description      String?
   sku              String          @unique
   category         ArticleCategory
-  isUsed           Boolean         @default(false) // Gebraucht = wird NICHT nachbestellt
   productGroup     String?         // z.B. "Notebook", "Monitor", "Drucker"
   productSubGroup  String?         // z.B. "14 Zoll", "27 Zoll", "Tintenstrahl"
+  avgPurchasePrice Decimal?        @db.Decimal(10, 2) // Durchschnittlicher Einkaufspreis ohne MwSt.
   unit             String          @default("Stk")
   minStockLevel    Int             @default(0)
   currentStock     Int             @default(0)
@@ -67,6 +67,7 @@ model SerialNumber {
   serialNo   String             @unique
   articleId  String
   status     SerialNumberStatus @default(IN_STOCK)
+  isUsed     Boolean            @default(false) // Gebraucht = wird NICHT nachbestellt
   notes      String?
 
   createdAt DateTime @default(now())

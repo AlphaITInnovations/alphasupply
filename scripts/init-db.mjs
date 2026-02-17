@@ -95,6 +95,46 @@ async function runMigrations(client) {
     await client.query(`ALTER TABLE "Article" DROP COLUMN "targetStockLevel"`);
     console.log("Migration: Dropped targetStockLevel column.");
   }
+
+  // Migration 6: Move isUsed from Article to SerialNumber
+  const snHasIsUsed = await client.query(
+    `SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'SerialNumber' AND column_name = 'isUsed')`
+  );
+  if (!snHasIsUsed.rows[0].exists) {
+    await client.query(`ALTER TABLE "SerialNumber" ADD COLUMN "isUsed" BOOLEAN NOT NULL DEFAULT false`);
+    console.log("Migration: Added isUsed to SerialNumber.");
+  }
+
+  // Migration 7: Drop isUsed from Article (moved to SerialNumber)
+  const articleHasIsUsed = await client.query(
+    `SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'Article' AND column_name = 'isUsed')`
+  );
+  if (articleHasIsUsed.rows[0].exists) {
+    await client.query(`ALTER TABLE "Article" DROP COLUMN "isUsed"`);
+    console.log("Migration: Dropped isUsed from Article.");
+  }
+
+  // Migration 8: Add avgPurchasePrice to Article
+  const hasAvgPrice = await client.query(
+    `SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'Article' AND column_name = 'avgPurchasePrice')`
+  );
+  if (!hasAvgPrice.rows[0].exists) {
+    await client.query(`ALTER TABLE "Article" ADD COLUMN "avgPurchasePrice" DECIMAL(10,2)`);
+    // Set prices for seed articles (Netto = Brutto / 1.19)
+    await client.query(`
+      UPDATE "Article" SET "avgPurchasePrice" = 126.04 WHERE "id" = 'art-jabra-ev2-65' AND "avgPurchasePrice" IS NULL;
+      UPDATE "Article" SET "avgPurchasePrice" = 21.00 WHERE "id" = 'art-lenovo-t210' AND "avgPurchasePrice" IS NULL;
+      UPDATE "Article" SET "avgPurchasePrice" = 37.81 WHERE "id" = 'art-dell-km5221w' AND "avgPurchasePrice" IS NULL;
+      UPDATE "Article" SET "avgPurchasePrice" = 104.12 WHERE "id" = 'art-yealink-t54w' AND "avgPurchasePrice" IS NULL;
+      UPDATE "Article" SET "avgPurchasePrice" = 416.01 WHERE "id" = 'art-lenovo-neo50q' AND "avgPurchasePrice" IS NULL;
+      UPDATE "Article" SET "avgPurchasePrice" = 503.68 WHERE "id" = 'art-lenovo-tb14-g7' AND "avgPurchasePrice" IS NULL;
+      UPDATE "Article" SET "avgPurchasePrice" = 507.19 WHERE "id" = 'art-lenovo-tb16-g7' AND "avgPurchasePrice" IS NULL;
+      UPDATE "Article" SET "avgPurchasePrice" = 99.45 WHERE "id" = 'art-iiyama-xub2792' AND "avgPurchasePrice" IS NULL;
+      UPDATE "Article" SET "avgPurchasePrice" = 167.65 WHERE "id" = 'art-brother-j1800dw' AND "avgPurchasePrice" IS NULL;
+      UPDATE "Article" SET "avgPurchasePrice" = 103.99 WHERE "id" = 'art-lenovo-usbc-dock' AND "avgPurchasePrice" IS NULL;
+    `);
+    console.log("Migration: Added avgPurchasePrice to Article.");
+  }
 }
 
 main().catch((err) => {

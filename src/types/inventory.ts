@@ -28,9 +28,9 @@ export const createArticleSchema = z.object({
   description: z.string().optional(),
   sku: z.string().min(1, "Artikelnummer ist erforderlich"),
   category: z.enum(["SERIALIZED", "STANDARD", "CONSUMABLE"]),
-  isUsed: z.coerce.boolean().default(false),
   productGroup: z.string().optional(),
   productSubGroup: z.string().optional(),
+  avgPurchasePrice: z.coerce.number().min(0).optional(),
   unit: z.string().default("Stk"),
   minStockLevel: z.coerce.number().int().min(0).default(0),
   notes: z.string().optional(),
@@ -51,6 +51,7 @@ export const createStockMovementSchema = z.object({
 export const createSerialNumberSchema = z.object({
   serialNo: z.string().min(1, "Seriennummer ist erforderlich"),
   articleId: z.string().min(1, "Artikel ist erforderlich"),
+  isUsed: z.coerce.boolean().default(false),
   locationId: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -81,6 +82,18 @@ export const createArticleSupplierSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const receivingSchema = z.object({
+  articleId: z.string().min(1, "Artikel ist erforderlich"),
+  quantity: z.coerce.number().int().min(1, "Menge muss mindestens 1 sein"),
+  reason: z.string().optional(),
+  performedBy: z.string().optional(),
+  serialNumbers: z.array(z.object({
+    serialNo: z.string().min(1, "Seriennummer ist erforderlich"),
+    isUsed: z.boolean().default(false),
+  })).optional(),
+});
+
+export type ReceivingInput = z.infer<typeof receivingSchema>;
 export type CreateArticleInput = z.infer<typeof createArticleSchema>;
 export type UpdateArticleInput = z.infer<typeof updateArticleSchema>;
 export type CreateStockMovementInput = z.infer<typeof createStockMovementSchema>;

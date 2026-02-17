@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Pencil, Recycle } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,9 +28,9 @@ type ArticleRow = {
   description: string | null;
   sku: string;
   category: string;
-  isUsed: boolean;
   productGroup: string | null;
   productSubGroup: string | null;
+  avgPurchasePrice: { toNumber(): number } | number | string | null;
   unit: string;
   currentStock: number;
   minStockLevel: number;
@@ -63,6 +63,7 @@ export function ArticleListTable({
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Name</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Gruppe</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Kategorie</TableHead>
+              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right">EK netto</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right">Bestand</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right">Min.</TableHead>
               <TableHead className="py-3 w-12" />
@@ -71,7 +72,7 @@ export function ArticleListTable({
           <TableBody>
             {articles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                   Keine Artikel gefunden.
                 </TableCell>
               </TableRow>
@@ -89,20 +90,12 @@ export function ArticleListTable({
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/inventory/${article.id}`}
-                          className="text-sm font-medium hover:text-primary transition-colors"
-                        >
-                          {article.name}
-                        </Link>
-                        {article.isUsed && (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 border border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800">
-                            <Recycle className="h-2.5 w-2.5" />
-                            Gebraucht
-                          </span>
-                        )}
-                      </div>
+                      <Link
+                        href={`/inventory/${article.id}`}
+                        className="text-sm font-medium hover:text-primary transition-colors"
+                      >
+                        {article.name}
+                      </Link>
                     </TableCell>
                     <TableCell>
                       {article.productGroup ? (
@@ -120,6 +113,11 @@ export function ArticleListTable({
                       <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold ${categoryColors[article.category] ?? ""}`}>
                         {articleCategoryLabels[article.category]}
                       </span>
+                    </TableCell>
+                    <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                      {article.avgPurchasePrice != null
+                        ? `${Number(article.avgPurchasePrice).toFixed(2)} €`
+                        : "–"}
                     </TableCell>
                     <TableCell className="text-right">
                       <span className={`text-sm font-bold tabular-nums ${isLowStock ? "text-destructive" : ""}`}>

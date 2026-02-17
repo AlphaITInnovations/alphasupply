@@ -8,11 +8,13 @@ import {
   ListOrdered,
   ArrowLeftRight,
   Factory,
+  PackagePlus,
 } from "lucide-react";
 
 const pageConfig: Record<string, { title: string; description: string; icon: React.ElementType }> = {
   "/": { title: "Dashboard", description: "Übersicht aller Lagerdaten", icon: LayoutDashboard },
   "/inventory/stock": { title: "Lagerbestand", description: "Aktuelle Bestände und Seriennummern", icon: Warehouse },
+  "/inventory/receiving": { title: "Wareneingang", description: "Ware einbuchen und Seriennummern erfassen", icon: PackagePlus },
   "/inventory": { title: "Artikelliste", description: "Alle Artikel verwalten", icon: ListOrdered },
   "/inventory/movements": { title: "Lagerbewegungen", description: "Ein- und Ausgänge nachverfolgen", icon: ArrowLeftRight },
   "/inventory/suppliers": { title: "Lieferanten", description: "Lieferantenstammdaten verwalten", icon: Factory },
@@ -23,6 +25,7 @@ function getPageConfig(pathname: string) {
   if (pageConfig[pathname]) return pageConfig[pathname];
   // Try prefix matches for detail pages
   if (pathname.startsWith("/inventory/stock")) return pageConfig["/inventory/stock"];
+  if (pathname.startsWith("/inventory/receiving")) return pageConfig["/inventory/receiving"];
   if (pathname.startsWith("/inventory/movements")) return pageConfig["/inventory/movements"];
   if (pathname.startsWith("/inventory/suppliers")) return pageConfig["/inventory/suppliers"];
   if (pathname.startsWith("/inventory")) return pageConfig["/inventory"];

@@ -10,6 +10,7 @@ import {
   createWarehouseLocationSchema,
   createSupplierSchema,
   createArticleSupplierSchema,
+  receivingSchema,
 } from "@/types/inventory";
 
 // ─── ARTIKEL ─────────────────────────────────────────────
@@ -221,6 +222,25 @@ export async function createSupplier(formData: FormData) {
   }
 }
 
+export async function updateSupplier(formData: FormData) {
+  const raw = Object.fromEntries(formData);
+  const id = raw.id as string;
+  if (!id) return { error: "Lieferanten-ID fehlt." };
+
+  const parsed = createSupplierSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { error: parsed.error.issues.map((i) => i.message).join(", ") };
+  }
+
+  try {
+    await db.supplier.update({ where: { id }, data: parsed.data });
+    revalidatePath("/inventory/suppliers");
+    return { success: true };
+  } catch {
+    return { error: "Fehler beim Aktualisieren des Lieferanten." };
+  }
+}
+
 export async function deleteSupplier(id: string) {
   try {
     await db.supplier.update({
@@ -231,6 +251,73 @@ export async function deleteSupplier(id: string) {
     return { success: true };
   } catch {
     return { error: "Fehler beim Löschen des Lieferanten." };
+  }
+}
+
+// ─── WARENEINGANG ────────────────────────────────────────
+
+export async function receiveGoods(data: {
+  articleId: string;
+  quantity: number;
+  reason?: string;
+  performedBy?: string;
+  serialNumbers?: { serialNo: string; isUsed: boolean }[];
+}) {
+  const parsed = receivingSchema.safeParse(data);
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues.map((i) => i.message).join(", ") };
+  }
+
+  const { articleId, quantity, reason, performedBy, serialNumbers } = parsed.data;
+
+  try {
+    await db.$transaction(async (tx) => {
+      // Create stock movement (IN)
+      await tx.stockMovement.create({
+        data: {
+          articleId,
+          type: "IN",
+          quantity,
+          reason: reason || "Wareneingang",
+          performedBy,
+        },
+      });
+
+      // Update article stock
+      await tx.article.update({
+        where: { id: articleId },
+        data: { currentStock: { increment: quantity } },
+      });
+
+      // Create serial numbers if provided (SERIALIZED articles)
+      if (serialNumbers && serialNumbers.length > 0) {
+        await tx.serialNumber.createMany({
+          data: serialNumbers.map((sn) => ({
+            serialNo: sn.serialNo,
+            articleId,
+            isUsed: sn.isUsed,
+            status: "IN_STOCK" as const,
+          })),
+        });
+      }
+    });
+
+    revalidatePath("/inventory");
+    revalidatePath(`/inventory/${articleId}`);
+    revalidatePath("/inventory/stock");
+    revalidatePath("/inventory/movements");
+    revalidatePath("/inventory/receiving");
+    revalidatePath("/");
+    return { success: true };
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      if (e.message.includes("Unique constraint")) {
+        return { error: "Eine oder mehrere Seriennummern existieren bereits." };
+      }
+      return { error: e.message };
+    }
+    return { error: "Fehler beim Wareneingang." };
   }
 }
 

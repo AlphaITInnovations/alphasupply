@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -16,7 +15,7 @@ import {
 import { createArticle, updateArticle } from "@/actions/inventory";
 import { articleCategoryLabels } from "@/types/inventory";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 
 type ArticleData = {
@@ -25,9 +24,9 @@ type ArticleData = {
   description: string | null;
   sku: string;
   category: string;
-  isUsed: boolean;
   productGroup: string | null;
   productSubGroup: string | null;
+  avgPurchasePrice: { toNumber(): number } | number | string | null;
   unit: string;
   minStockLevel: number;
   notes: string | null;
@@ -45,14 +44,12 @@ export function ArticleForm({
   nextSku?: string;
 }) {
   const router = useRouter();
-  const [isUsed, setIsUsed] = useState(article?.isUsed ?? false);
   const action = article ? updateArticle : createArticle;
   const [state, formAction, isPending] = useActionState(
     async (_prev: { error?: string; success?: boolean } | null, formData: FormData) => {
       if (article) {
         formData.set("id", article.id);
       }
-      formData.set("isUsed", isUsed ? "true" : "false");
       return action(formData);
     },
     null
@@ -178,20 +175,24 @@ export function ArticleForm({
         </div>
       </div>
 
-      <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
-        <Switch
-          id="isUsed"
-          checked={isUsed}
-          onCheckedChange={setIsUsed}
-        />
-        <div>
-          <Label htmlFor="isUsed" className="cursor-pointer text-sm font-medium">
-            Gebraucht
-          </Label>
-          <p className="text-[11px] text-muted-foreground">
-            Gebrauchte Artikel werden nicht nachbestellt
-          </p>
+      <div className="space-y-2">
+        <Label htmlFor="avgPurchasePrice">Durchschn. Einkaufspreis (netto, ohne MwSt.)</Label>
+        <div className="relative">
+          <Input
+            id="avgPurchasePrice"
+            name="avgPurchasePrice"
+            type="number"
+            min={0}
+            step={0.01}
+            defaultValue={article?.avgPurchasePrice != null ? Number(article.avgPurchasePrice) : ""}
+            placeholder="0.00"
+            className="pr-10"
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">EUR</span>
         </div>
+        <p className="text-[11px] text-muted-foreground">
+          Netto-Einkaufspreis ohne Mehrwertsteuer
+        </p>
       </div>
 
       <div className="space-y-2">
