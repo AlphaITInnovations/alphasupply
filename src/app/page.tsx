@@ -1,21 +1,19 @@
 export const dynamic = "force-dynamic";
 
 import {
-  Package,
+  ClipboardList,
   AlertTriangle,
-  ArrowLeftRight,
-  Hash,
-  TrendingUp,
   ArrowDownRight,
   ArrowUpRight,
+  ArrowLeftRight,
+  TrendingUp,
+  Wrench,
+  ShoppingCart,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDashboardStats } from "@/queries/inventory";
-import {
-  articleCategoryLabels,
-  stockMovementTypeLabels,
-} from "@/types/inventory";
+import { articleCategoryLabels } from "@/types/inventory";
 import Link from "next/link";
 
 export default async function DashboardPage() {
@@ -25,75 +23,83 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       {/* Statistik-Karten */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-petrol/5 to-transparent" />
-          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Artikel gesamt
-            </CardTitle>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-petrol/10">
-              <Package className="h-4 w-4 text-petrol" />
-            </div>
-          </CardHeader>
-          <CardContent className="relative">
-            <div className="text-3xl font-bold tracking-tight">{stats.totalArticles}</div>
-            <p className="mt-1 text-xs text-muted-foreground">Aktive Artikel im System</p>
-          </CardContent>
-        </Card>
+        <Link href="/orders" className="block">
+          <Card className="relative overflow-hidden transition-all hover:shadow-md hover:border-primary/30">
+            <div className="absolute inset-0 bg-gradient-to-br from-petrol/5 to-transparent" />
+            <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Offene Aufträge
+              </CardTitle>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-petrol/10">
+                <ClipboardList className="h-4 w-4 text-petrol" />
+              </div>
+            </CardHeader>
+            <CardContent className="relative">
+              <div className="text-3xl font-bold tracking-tight">{stats.openOrders}</div>
+              <p className="mt-1 text-xs text-muted-foreground">Aufträge in Bearbeitung</p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-destructive/5 to-transparent" />
-          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Niedrigbestand
-            </CardTitle>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-destructive/10">
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-            </div>
-          </CardHeader>
-          <CardContent className="relative">
-            <div className="text-3xl font-bold tracking-tight text-destructive">
-              {stats.lowStockArticles.length}
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">Unter Mindestbestand</p>
-          </CardContent>
-        </Card>
+        <Link href="/techniker" className="block">
+          <Card className="relative overflow-hidden transition-all hover:shadow-md hover:border-primary/30">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
+            <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Techniker
+              </CardTitle>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10">
+                <Wrench className="h-4 w-4 text-blue-500" />
+              </div>
+            </CardHeader>
+            <CardContent className="relative">
+              <div className="text-3xl font-bold tracking-tight text-blue-600 dark:text-blue-400">
+                {stats.techPendingOrders}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Warten auf Bearbeitung</p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-petrol-light/5 to-transparent" />
-          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Seriennummern
-            </CardTitle>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-petrol-light/10">
-              <Hash className="h-4 w-4 text-petrol-light" />
-            </div>
-          </CardHeader>
-          <CardContent className="relative">
-            <div className="text-3xl font-bold tracking-tight">
-              {stats.totalSerialNumbers}
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">Geräte im Lager</p>
-          </CardContent>
-        </Card>
+        <Link href="/procurement" className="block">
+          <Card className="relative overflow-hidden transition-all hover:shadow-md hover:border-primary/30">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent" />
+            <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Bestellwesen
+              </CardTitle>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
+                <ShoppingCart className="h-4 w-4 text-amber-500" />
+              </div>
+            </CardHeader>
+            <CardContent className="relative">
+              <div className="text-3xl font-bold tracking-tight text-amber-600 dark:text-amber-400">
+                {stats.procPendingOrders}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Offene Bestellungen</p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-petrol/5 to-transparent" />
-          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Letzte Bewegungen
-            </CardTitle>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-petrol/10">
-              <ArrowLeftRight className="h-4 w-4 text-petrol" />
-            </div>
-          </CardHeader>
-          <CardContent className="relative">
-            <div className="text-3xl font-bold tracking-tight">
-              {stats.recentMovements.length}
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">In den letzten Tagen</p>
-          </CardContent>
-        </Card>
+        <Link href="/inventory/stock" className="block">
+          <Card className="relative overflow-hidden transition-all hover:shadow-md hover:border-primary/30">
+            <div className="absolute inset-0 bg-gradient-to-br from-destructive/5 to-transparent" />
+            <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Niedrigbestand
+              </CardTitle>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-destructive/10">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+              </div>
+            </CardHeader>
+            <CardContent className="relative">
+              <div className="text-3xl font-bold tracking-tight text-destructive">
+                {stats.lowStockArticles.length}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Unter Mindestbestand</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -107,9 +113,9 @@ export default async function DashboardPage() {
                 </div>
                 Niedrigbestand
               </CardTitle>
-              <Badge variant="destructive" className="text-[10px]">
-                {stats.lowStockArticles.length} Artikel
-              </Badge>
+              <Link href="/inventory/stock" className="text-xs font-medium text-primary hover:underline">
+                Alle anzeigen
+              </Link>
             </div>
           </CardHeader>
           <CardContent>
@@ -164,7 +170,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Letzte Lagerbewegungen */}
+        {/* Aktivitäts-Log */}
         <Card>
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
@@ -172,7 +178,7 @@ export default async function DashboardPage() {
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-petrol/10">
                   <ArrowLeftRight className="h-3.5 w-3.5 text-petrol" />
                 </div>
-                Letzte Bewegungen
+                Aktivitäts-Log
               </CardTitle>
               <Link href="/inventory/movements" className="text-xs font-medium text-primary hover:underline">
                 Alle anzeigen
@@ -185,7 +191,7 @@ export default async function DashboardPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                   <ArrowLeftRight className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <p className="mt-3 text-sm font-medium">Keine Bewegungen</p>
+                <p className="mt-3 text-sm font-medium">Keine Aktivitäten</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Noch keine Lagerbewegungen vorhanden.
                 </p>
@@ -205,7 +211,7 @@ export default async function DashboardPage() {
                           : "bg-warning/10"
                     }`}>
                       {movement.type === "IN" ? (
-                        <ArrowDownRight className={`h-4 w-4 text-success`} />
+                        <ArrowDownRight className="h-4 w-4 text-success" />
                       ) : movement.type === "OUT" ? (
                         <ArrowUpRight className="h-4 w-4 text-destructive" />
                       ) : (
@@ -230,7 +236,7 @@ export default async function DashboardPage() {
                             : "text-warning"
                       }`}>
                         {movement.type === "IN" ? "+" : movement.type === "OUT" ? "-" : ""}
-                        {movement.quantity}
+                        {Math.abs(movement.quantity)}
                       </span>
                       <p className="mt-0.5 text-[10px] text-muted-foreground">
                         {new Date(movement.createdAt).toLocaleDateString("de-DE")}

@@ -280,7 +280,10 @@ INSERT INTO "Article" ("id", "name", "description", "sku", "category", "productG
   ('art-lenovo-tb16-g7', 'Lenovo ThinkBook 16 G7 ARP', 'AMD Ryzen 5 7535HS 16" WUXGA 16 GB DDR5 512 GB SSD Win11 Pro', 'ART-007', 'SERIALIZED', 'Notebook', '16 Zoll', 507.19, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
   ('art-iiyama-xub2792', 'iiyama ProLite XUB2792HSU-W6', '27" Full HD IPS Monitor 1920x1080 weiss', 'ART-008', 'SERIALIZED', 'Monitor', '27 Zoll', 99.45, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
   ('art-brother-j1800dw', 'Brother DCP-J1800DW', 'Tintenstrahl-Multifunktionsdrucker A4 WLAN', 'ART-009', 'SERIALIZED', 'Drucker', 'Tintenstrahl', 167.65, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-lenovo-usbc-dock', 'Lenovo ThinkPad Universal USB-C Dock', 'USB-C Dockingstation 40AY0090EU', 'ART-010', 'SERIALIZED', 'Dockingstation', 'USB-C', 103.99, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW())
+  ('art-lenovo-usbc-dock', 'Lenovo ThinkPad Universal USB-C Dock', 'USB-C Dockingstation 40AY0090EU', 'ART-010', 'SERIALIZED', 'Dockingstation', 'USB-C', 103.99, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-brother-lc421vp', 'Brother LC-421 Value Pack', 'Tintenpatronen-Set (BK/C/M/Y) fuer DCP-J1800DW', 'ART-011', 'CONSUMABLE', 'Verbrauchsmaterial', 'Tinte', 30.00, 'Set', 2, 0, NULL, true, NULL, NOW(), NOW()),
+  ('art-hp-usbc-g5-dock', 'HP USB-C G5 Essential Dock', 'USB-C Dockingstation EMEA', 'ART-012', 'SERIALIZED', 'Dockingstation', 'USB-C', 99.00, 'Stk', 1, 0, NULL, true, NULL, NOW(), NOW()),
+  ('art-logitech-brio100', 'Logitech Brio 100', 'Full HD Webcam 2 Mpx USB', 'ART-013', 'SERIALIZED', 'Peripherie', 'Webcam', 33.00, 'Stk', 2, 0, NULL, true, NULL, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- Seed: Seriennummern (nur SERIALIZED Artikel)
@@ -320,5 +323,8 @@ INSERT INTO "ArticleSupplier" ("id", "articleId", "supplierId", "supplierSku", "
   ('as-tb16-tdg', 'art-lenovo-tb16-g7', 'sup-tdg', '21MW001WGE', 603.56, 'EUR', 10, 1, true, NULL, NULL, NOW(), NOW()),
   ('as-iiyama-tdg', 'art-iiyama-xub2792', 'sup-tdg', 'XUB2792HSU-W6', 118.34, 'EUR', 10, 1, true, NULL, NULL, NOW(), NOW()),
   ('as-brother-tdg', 'art-brother-j1800dw', 'sup-tdg', 'DCP-J1800DW', 199.50, 'EUR', 10, 1, true, NULL, NULL, NOW(), NOW()),
-  ('as-dock-tdg', 'art-lenovo-usbc-dock', 'sup-tdg', '40AY0090EU', 123.74, 'EUR', 10, 1, true, NULL, NULL, NOW(), NOW())
+  ('as-dock-tdg', 'art-lenovo-usbc-dock', 'sup-tdg', '40AY0090EU', 123.74, 'EUR', 10, 1, true, NULL, NULL, NOW(), NOW()),
+  ('as-lc421-amazon', 'art-brother-lc421vp', 'sup-amazon', NULL, 35.70, 'EUR', 3, 1, true, NULL, NULL, NOW(), NOW()),
+  ('as-hp-dock-galaxus', 'art-hp-usbc-g5-dock', 'sup-galaxus', NULL, 117.81, 'EUR', 5, 1, true, NULL, NULL, NOW(), NOW()),
+  ('as-brio100-galaxus', 'art-logitech-brio100', 'sup-galaxus', NULL, 39.27, 'EUR', 5, 1, true, NULL, NULL, NOW(), NOW())
 ON CONFLICT DO NOTHING;

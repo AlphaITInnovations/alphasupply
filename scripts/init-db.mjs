@@ -301,6 +301,29 @@ async function runMigrations(client) {
 
     console.log("Migration 12: Added parallel order lifecycle fields.");
   }
+
+  // Migration 13: New seed articles (LC-421 Value Pack, HP G5 Dock, Logitech Brio 100)
+  const hasLC421 = await client.query(
+    `SELECT EXISTS (SELECT 1 FROM "Article" WHERE "id" = 'art-brother-lc421vp')`
+  );
+  if (!hasLC421.rows[0].exists) {
+    await client.query(`
+      INSERT INTO "Article" ("id", "name", "description", "sku", "category", "productGroup", "productSubGroup", "avgPurchasePrice", "unit", "minStockLevel", "currentStock", "imageUrl", "isActive", "notes", "createdAt", "updatedAt") VALUES
+        ('art-brother-lc421vp', 'Brother LC-421 Value Pack', 'Tintenpatronen-Set (BK/C/M/Y) fuer DCP-J1800DW', 'ART-011', 'CONSUMABLE', 'Verbrauchsmaterial', 'Tinte', 30.00, 'Set', 2, 0, NULL, true, NULL, NOW(), NOW()),
+        ('art-hp-usbc-g5-dock', 'HP USB-C G5 Essential Dock', 'USB-C Dockingstation EMEA', 'ART-012', 'SERIALIZED', 'Dockingstation', 'USB-C', 99.00, 'Stk', 1, 0, NULL, true, NULL, NOW(), NOW()),
+        ('art-logitech-brio100', 'Logitech Brio 100', 'Full HD Webcam 2 Mpx USB', 'ART-013', 'SERIALIZED', 'Peripherie', 'Webcam', 33.00, 'Stk', 2, 0, NULL, true, NULL, NOW(), NOW())
+      ON CONFLICT DO NOTHING;
+    `);
+    // Supplier links
+    await client.query(`
+      INSERT INTO "ArticleSupplier" ("id", "articleId", "supplierId", "supplierSku", "unitPrice", "currency", "leadTimeDays", "minOrderQty", "isPreferred", "lastOrderDate", "notes", "createdAt", "updatedAt") VALUES
+        ('as-lc421-amazon', 'art-brother-lc421vp', 'sup-amazon', NULL, 35.70, 'EUR', 3, 1, true, NULL, NULL, NOW(), NOW()),
+        ('as-hp-dock-galaxus', 'art-hp-usbc-g5-dock', 'sup-galaxus', NULL, 117.81, 'EUR', 5, 1, true, NULL, NULL, NOW(), NOW()),
+        ('as-brio100-galaxus', 'art-logitech-brio100', 'sup-galaxus', NULL, 39.27, 'EUR', 5, 1, true, NULL, NULL, NOW(), NOW())
+      ON CONFLICT DO NOTHING;
+    `);
+    console.log("Migration 13: Added new seed articles (LC-421, HP G5 Dock, Brio 100).");
+  }
 }
 
 main().catch((err) => {

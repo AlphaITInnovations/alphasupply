@@ -7,7 +7,6 @@ import {
   ClipboardList,
   LayoutDashboard,
   Warehouse,
-  ArrowLeftRight,
   Factory,
   ListOrdered,
   PackagePlus,
@@ -16,34 +15,42 @@ import {
   Wrench,
   ShoppingCart,
   Smartphone,
+  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
-const navigation = [
+type NavItem = {
+  name: string;
+  href?: string;
+  icon?: React.ElementType;
+  items?: { name: string; href: string; icon: React.ElementType; disabled?: boolean }[];
+};
+
+const navigation: NavItem[] = [
   {
     name: "Dashboard",
     href: "/",
     icon: LayoutDashboard,
   },
   {
-    name: "Lager",
+    name: "Aufträge",
     items: [
-      { name: "Lagerbestand", href: "/inventory/stock", icon: Warehouse },
+      { name: "Auftragswesen", href: "/orders", icon: ClipboardList },
+      { name: "Techniker", href: "/techniker", icon: Wrench },
+      { name: "Bestellwesen", href: "/procurement", icon: ShoppingCart },
       { name: "Wareneingang", href: "/inventory/receiving", icon: PackagePlus },
-      { name: "Artikelliste", href: "/inventory", icon: ListOrdered },
-      { name: "Lagerbewegungen", href: "/inventory/movements", icon: ArrowLeftRight },
-      { name: "Lieferanten", href: "/inventory/suppliers", icon: Factory },
+      { name: "Mobilfunk", href: "/mobilfunk", icon: Smartphone },
     ],
   },
   {
-    name: "Aufträge",
+    name: "Lager",
     items: [
-      { name: "Auftragsliste", href: "/orders", icon: ClipboardList },
-      { name: "Techniker", href: "/techniker", icon: Wrench },
-      { name: "Beschaffung", href: "/procurement", icon: ShoppingCart },
-      { name: "Mobilfunk", href: "/mobilfunk", icon: Smartphone },
+      { name: "Lager", href: "/inventory/stock", icon: Warehouse },
+      { name: "Artikelliste", href: "/inventory", icon: ListOrdered },
+      { name: "Lieferanten", href: "/inventory/suppliers", icon: Factory },
+      { name: "Inventur", href: "/inventur", icon: ClipboardCheck, disabled: true },
     ],
   },
 ];
@@ -108,6 +115,21 @@ export function Sidebar() {
                   </p>
                   <div className="space-y-0.5">
                     {item.items.map((subItem) => {
+                      if (subItem.disabled) {
+                        return (
+                          <div
+                            key={subItem.href}
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-sidebar-foreground/25 cursor-not-allowed"
+                          >
+                            <subItem.icon className="h-[18px] w-[18px]" />
+                            {subItem.name}
+                            <span className="ml-auto rounded-md bg-white/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/30">
+                              Bald
+                            </span>
+                          </div>
+                        );
+                      }
+
                       const knownSubPaths = ["/inventory/stock", "/inventory/receiving", "/inventory/movements", "/inventory/suppliers", "/inventory/locations"];
                       const isActive =
                         subItem.href === "/inventory"

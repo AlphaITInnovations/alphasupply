@@ -167,6 +167,9 @@ export async function getDashboardStats() {
     lowStockArticles,
     recentMovements,
     totalSerialNumbers,
+    openOrders,
+    techPendingOrders,
+    procPendingOrders,
   ] = await Promise.all([
     db.article.count({ where: { isActive: true } }),
     db.article.findMany({
@@ -189,9 +192,28 @@ export async function getDashboardStats() {
         article: { select: { name: true, sku: true } },
       },
       orderBy: { createdAt: "desc" },
-      take: 10,
+      take: 8,
     }),
     db.serialNumber.count({ where: { status: "IN_STOCK" } }),
+    // Open orders (NEW or IN_PROGRESS)
+    db.order.count({ where: { status: { in: ["NEW", "IN_PROGRESS"] } } }),
+    // Orders needing technician work (not yet techDoneAt)
+    db.order.count({
+      where: {
+        status: { in: ["NEW", "IN_PROGRESS"] },
+        techDoneAt: null,
+      },
+    }),
+    // Orders with pending procurement (items needing ordering that haven't been ordered)
+    db.order.count({
+      where: {
+        status: { in: ["NEW", "IN_PROGRESS"] },
+        OR: [
+          { items: { some: { needsOrdering: true, orderedAt: null } } },
+          { mobilfunk: { some: { ordered: false } } },
+        ],
+      },
+    }),
   ]);
 
   return {
@@ -199,5 +221,8 @@ export async function getDashboardStats() {
     lowStockArticles,
     recentMovements,
     totalSerialNumbers,
+    openOrders,
+    techPendingOrders,
+    procPendingOrders,
   };
 }
