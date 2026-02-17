@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { ArticleCategory } from "@/generated/prisma/client";
+import { computeAvailability } from "@/queries/techniker";
 
 export async function getArticles(options?: {
   category?: ArticleCategory;
@@ -198,11 +199,20 @@ export async function getDashboardStats() {
     }),
     // Open orders (NEW or IN_PROGRESS)
     db.order.count({ where: { status: { in: ["NEW", "IN_PROGRESS"] } } }),
-    // Orders needing technician work (not yet techDoneAt)
-    db.order.count({
+    // Orders needing technician work — load items to compute availability
+    db.order.findMany({
       where: {
         status: { in: ["NEW", "IN_PROGRESS"] },
         techDoneAt: null,
+      },
+      select: {
+        items: {
+          select: {
+            quantity: true,
+            pickedQty: true,
+            article: { select: { currentStock: true } },
+          },
+        },
       },
     }),
     // Orders with pending procurement (items needing ordering that haven't been ordered)
@@ -221,11 +231,16 @@ export async function getDashboardStats() {
     }),
   ]);
 
+  // Count only orders where all hardware is available (green/yellow)
+  const techReadyOrders = techPendingOrders.filter(
+    (o) => computeAvailability(o.items) !== "red"
+  ).length;
+
   return {
     lowStockArticles,
     recentMovements,
     openOrders,
-    techPendingOrders,
+    techPendingOrders: techReadyOrders,
     procPendingOrders,
     incomingArticles,
   };

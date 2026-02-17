@@ -26,40 +26,71 @@ export async function getTechOrders() {
     orderBy: { createdAt: "asc" },
   });
 
-  return orders.map((order) => {
-    // Calculate tech progress
-    const totalItems = order.items.reduce((sum, i) => sum + i.quantity, 0);
-    const pickedItems = order.items.reduce((sum, i) => sum + i.pickedQty, 0);
-    const totalMf = order.mobilfunk.length;
-    const setupMf = order.mobilfunk.filter((mf) => mf.setupDone).length;
+  return orders
+    .filter((order) => !order.techDoneAt)
+    .map((order) => {
+      // Calculate tech progress
+      const totalItems = order.items.reduce((sum, i) => sum + i.quantity, 0);
+      const pickedItems = order.items.reduce((sum, i) => sum + i.pickedQty, 0);
+      const totalMf = order.mobilfunk.length;
+      const setupMf = order.mobilfunk.filter((mf) => mf.setupDone).length;
 
-    // Ampel: green = alles am Lager, yellow = teilweise, red = fehlt
-    type Availability = "green" | "yellow" | "red";
-    let availability: Availability = "green";
-    for (const item of order.items) {
-      if (!item.article) {
-        availability = "red";
-        break;
-      }
-      if (item.article.currentStock < item.quantity) {
-        availability = "red";
-        break;
-      }
-    }
-    if (availability === "green" && order.items.some((i) => i.article && i.article.currentStock === i.quantity)) {
-      availability = "yellow";
-    }
+      // Ampel: green = alles am Lager, yellow = knapp, red = fehlt/auf Zulauf
+      const availability = computeAvailability(order.items);
 
-    return {
-      ...order,
-      computedStatus: computeOrderStatus(order),
-      totalItems,
-      pickedItems,
-      totalMf,
-      setupMf,
-      availability,
-    };
-  });
+      return {
+        ...order,
+        computedStatus: computeOrderStatus(order),
+        totalItems,
+        pickedItems,
+        totalMf,
+        setupMf,
+        availability,
+      };
+    })
+    // Nur Aufträge anzeigen wo Hardware verfügbar ist (grün/gelb)
+    .filter((order) => order.availability !== "red");
+}
+
+/**
+ * Berechnet die Lagerverfügbarkeit eines Auftrags.
+ * Bereits entnommene Positionen werden ignoriert.
+ * - green: alles am Lager (mehr als genug)
+ * - yellow: alles am Lager, aber knapp (Bestand = benötigte Menge)
+ * - red: Hardware fehlt oder auf Zulauf
+ */
+export type Availability = "green" | "yellow" | "red";
+
+export function computeAvailability(
+  items: { quantity: number; pickedQty: number; article: { currentStock: number } | null }[]
+): Availability {
+  let availability: Availability = "green";
+
+  for (const item of items) {
+    const remaining = item.quantity - item.pickedQty;
+    if (remaining <= 0) continue; // Bereits vollständig entnommen
+
+    if (!item.article) {
+      // Freitext-Position noch nicht entnommen → Hardware fehlt
+      availability = "red";
+      break;
+    }
+    if (item.article.currentStock < remaining) {
+      availability = "red";
+      break;
+    }
+  }
+
+  if (availability === "green") {
+    // Prüfe ob Bestand nur knapp reicht
+    const tight = items.some((i) => {
+      const remaining = i.quantity - i.pickedQty;
+      return remaining > 0 && i.article && i.article.currentStock === remaining;
+    });
+    if (tight) availability = "yellow";
+  }
+
+  return availability;
 }
 
 export async function getTechOrderById(id: string) {

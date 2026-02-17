@@ -135,6 +135,11 @@ export async function toggleMobilfunkDelivered(id: string, delivered: boolean) {
   }
 }
 
+export async function fetchOrderDetail(id: string) {
+  const { getOrderById } = await import("@/queries/orders");
+  return getOrderById(id);
+}
+
 export async function cancelOrder(id: string) {
   const order = await db.order.findUnique({
     where: { id },
