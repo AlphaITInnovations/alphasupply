@@ -120,12 +120,34 @@ export function ArticleListTable({
                         : "–"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className={`text-sm font-bold tabular-nums ${isLowStock ? "text-destructive" : ""}`}>
+                      <span className="text-sm font-bold tabular-nums">
                         {article.currentStock}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
-                      {article.minStockLevel}
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="text-sm text-muted-foreground tabular-nums">
+                          {article.minStockLevel}
+                        </span>
+                        <div className="w-12 h-1.5 rounded-full bg-muted overflow-hidden">
+                          {article.minStockLevel > 0 ? (
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                article.currentStock >= article.minStockLevel * 1.5
+                                  ? "bg-emerald-500"
+                                  : article.currentStock >= article.minStockLevel
+                                    ? "bg-amber-400"
+                                    : "bg-red-500"
+                              }`}
+                              style={{
+                                width: `${Math.min(100, (article.currentStock / Math.max(article.minStockLevel * 1.5, 1)) * 100)}%`,
+                              }}
+                            />
+                          ) : (
+                            <div className="h-full rounded-full bg-muted-foreground/20 w-full" />
+                          )}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Button

@@ -135,6 +135,48 @@ async function runMigrations(client) {
     `);
     console.log("Migration: Added avgPurchasePrice to Article.");
   }
+
+  // Migration 9: Create Order + OrderItem tables
+  const hasOrderTable = await client.query(
+    `SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'Order')`
+  );
+  if (!hasOrderTable.rows[0].exists) {
+    await client.query(`CREATE TYPE "OrderStatus" AS ENUM ('NEW', 'IN_PROGRESS', 'READY', 'COMPLETED', 'CANCELLED')`).catch(() => {});
+    await client.query(`CREATE TYPE "DeliveryMethod" AS ENUM ('SHIPPING', 'PICKUP')`).catch(() => {});
+    await client.query(`
+      CREATE TABLE "Order" (
+        "id" TEXT NOT NULL,
+        "orderNumber" TEXT NOT NULL,
+        "status" "OrderStatus" NOT NULL DEFAULT 'NEW',
+        "orderedBy" TEXT NOT NULL,
+        "orderedFor" TEXT NOT NULL,
+        "costCenter" TEXT NOT NULL,
+        "deliveryMethod" "DeliveryMethod" NOT NULL,
+        "shippingAddress" TEXT,
+        "pickupBy" TEXT,
+        "notes" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "Order_pkey" PRIMARY KEY ("id")
+      );
+      CREATE UNIQUE INDEX "Order_orderNumber_key" ON "Order"("orderNumber");
+      CREATE INDEX "Order_status_idx" ON "Order"("status");
+      CREATE INDEX "Order_createdAt_idx" ON "Order"("createdAt");
+
+      CREATE TABLE "OrderItem" (
+        "id" TEXT NOT NULL,
+        "orderId" TEXT NOT NULL,
+        "articleId" TEXT NOT NULL,
+        "quantity" INTEGER NOT NULL,
+        CONSTRAINT "OrderItem_pkey" PRIMARY KEY ("id")
+      );
+      CREATE UNIQUE INDEX "OrderItem_orderId_articleId_key" ON "OrderItem"("orderId", "articleId");
+      CREATE INDEX "OrderItem_orderId_idx" ON "OrderItem"("orderId");
+      ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+      ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON UPDATE CASCADE;
+    `);
+    console.log("Migration: Created Order + OrderItem tables.");
+  }
 }
 
 main().catch((err) => {

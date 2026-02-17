@@ -138,6 +138,48 @@ CREATE INDEX "ArticleSupplier_articleId_idx" ON "ArticleSupplier"("articleId");
 CREATE INDEX "ArticleSupplier_supplierId_idx" ON "ArticleSupplier"("supplierId");
 CREATE UNIQUE INDEX "ArticleSupplier_articleId_supplierId_key" ON "ArticleSupplier"("articleId", "supplierId");
 
+-- CreateEnum
+CREATE TYPE "OrderStatus" AS ENUM ('NEW', 'IN_PROGRESS', 'READY', 'COMPLETED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "DeliveryMethod" AS ENUM ('SHIPPING', 'PICKUP');
+
+-- CreateTable
+CREATE TABLE "Order" (
+    "id" TEXT NOT NULL,
+    "orderNumber" TEXT NOT NULL,
+    "status" "OrderStatus" NOT NULL DEFAULT 'NEW',
+    "orderedBy" TEXT NOT NULL,
+    "orderedFor" TEXT NOT NULL,
+    "costCenter" TEXT NOT NULL,
+    "deliveryMethod" "DeliveryMethod" NOT NULL,
+    "shippingAddress" TEXT,
+    "pickupBy" TEXT,
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Order_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "OrderItem" (
+    "id" TEXT NOT NULL,
+    "orderId" TEXT NOT NULL,
+    "articleId" TEXT NOT NULL,
+    "quantity" INTEGER NOT NULL,
+
+    CONSTRAINT "OrderItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Order_orderNumber_key" ON "Order"("orderNumber");
+CREATE INDEX "Order_status_idx" ON "Order"("status");
+CREATE INDEX "Order_createdAt_idx" ON "Order"("createdAt");
+
+CREATE UNIQUE INDEX "OrderItem_orderId_articleId_key" ON "OrderItem"("orderId", "articleId");
+CREATE INDEX "OrderItem_orderId_idx" ON "OrderItem"("orderId");
+
 -- AddForeignKey
 ALTER TABLE "SerialNumber" ADD CONSTRAINT "SerialNumber_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "SerialNumber" ADD CONSTRAINT "SerialNumber_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "WarehouseLocation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -149,6 +191,10 @@ ALTER TABLE "StockMovement" ADD CONSTRAINT "StockMovement_articleId_fkey" FOREIG
 
 ALTER TABLE "ArticleSupplier" ADD CONSTRAINT "ArticleSupplier_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ArticleSupplier" ADD CONSTRAINT "ArticleSupplier_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "Order" ADD CONSTRAINT "Order_pkey_check" CHECK (true);
+ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON UPDATE CASCADE;
 
 -- Seed: Lieferanten
 INSERT INTO "Supplier" ("id", "name", "contactName", "email", "phone", "website", "notes", "isActive", "createdAt", "updatedAt") VALUES

@@ -9,6 +9,8 @@ import {
   ArrowLeftRight,
   Factory,
   PackagePlus,
+  ClipboardList,
+  Plus,
 } from "lucide-react";
 
 const pageConfig: Record<string, { title: string; description: string; icon: React.ElementType }> = {
@@ -18,6 +20,8 @@ const pageConfig: Record<string, { title: string; description: string; icon: Rea
   "/inventory": { title: "Artikelliste", description: "Alle Artikel verwalten", icon: ListOrdered },
   "/inventory/movements": { title: "Lagerbewegungen", description: "Ein- und Ausgänge nachverfolgen", icon: ArrowLeftRight },
   "/inventory/suppliers": { title: "Lieferanten", description: "Lieferantenstammdaten verwalten", icon: Factory },
+  "/orders/new": { title: "Neuer Auftrag", description: "Auftrag manuell anlegen", icon: Plus },
+  "/orders": { title: "Aufträge", description: "Aufträge verwalten und verfolgen", icon: ClipboardList },
 };
 
 function getPageConfig(pathname: string) {
@@ -29,6 +33,8 @@ function getPageConfig(pathname: string) {
   if (pathname.startsWith("/inventory/movements")) return pageConfig["/inventory/movements"];
   if (pathname.startsWith("/inventory/suppliers")) return pageConfig["/inventory/suppliers"];
   if (pathname.startsWith("/inventory")) return pageConfig["/inventory"];
+  if (pathname.startsWith("/orders/new")) return pageConfig["/orders/new"];
+  if (pathname.startsWith("/orders")) return pageConfig["/orders"];
   return pageConfig["/"];
 }
 

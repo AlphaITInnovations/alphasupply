@@ -38,9 +38,9 @@ const navigation = [
   },
   {
     name: "Aufträge",
-    href: "/orders",
-    icon: ClipboardList,
-    disabled: true,
+    items: [
+      { name: "Auftragsliste", href: "/orders", icon: ClipboardList },
+    ],
   },
   {
     name: "Beschaffung",

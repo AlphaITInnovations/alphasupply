@@ -30,6 +30,19 @@ enum SerialNumberStatus {
   DISPOSED   // Entsorgt
 }
 
+enum OrderStatus {
+  NEW          // Neu angelegt, noch nicht bearbeitet
+  IN_PROGRESS  // In Bearbeitung (Zusammenstellung/Einrichtung)
+  READY        // Bereit zur Abholung/Versand
+  COMPLETED    // Abgeschlossen
+  CANCELLED    // Storniert
+}
+
+enum DeliveryMethod {
+  SHIPPING // Versand an Adresse
+  PICKUP   // Abholung vor Ort
+}
+
 // ─── ARTIKEL ─────────────────────────────────────────────
 
 model Article {
@@ -55,6 +68,7 @@ model Article {
   stockMovements   StockMovement[]
   articleSuppliers ArticleSupplier[]
   stockLocations   StockLocation[]
+  orderItems       OrderItem[]
 
   @@index([category])
   @@index([name])
@@ -171,4 +185,40 @@ model ArticleSupplier {
   @@unique([articleId, supplierId])
   @@index([articleId])
   @@index([supplierId])
+}
+
+// ─── AUFTRÄGE ───────────────────────────────────────────
+
+model Order {
+  id              String         @id @default(cuid())
+  orderNumber     String         @unique  // BES-001, BES-002, ...
+  status          OrderStatus    @default(NEW)
+  orderedBy       String         // Wer hat bestellt (Name)
+  orderedFor      String         // Für wen ist die Bestellung (Name)
+  costCenter      String         // Kostenstelle (Nummer)
+  deliveryMethod  DeliveryMethod
+  shippingAddress String?        // Nur bei SHIPPING
+  pickupBy        String?        // Nur bei PICKUP: wer holt ab
+  notes           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items OrderItem[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  articleId String
+  quantity  Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  article Article @relation(fields: [articleId], references: [id])
+
+  @@unique([orderId, articleId])
+  @@index([orderId])
 }
