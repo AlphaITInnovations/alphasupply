@@ -73,7 +73,7 @@ export function Sidebar() {
       {/* Overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -81,61 +81,70 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-sidebar-border bg-sidebar transition-transform lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-sidebar transition-transform duration-300 ease-out lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Logo */}
-        <div className="flex h-14 items-center border-b border-sidebar-border px-4">
-          <Link href="/" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Package className="h-4.5 w-4.5 text-primary-foreground" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold leading-tight text-sidebar-foreground">
-                AlphaSupply
-              </span>
-              <span className="text-[10px] leading-tight text-muted-foreground">
-                Lagerverwaltung
-              </span>
-            </div>
+        <div className="flex h-16 items-center gap-3 px-5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-petrol-light to-petrol shadow-lg shadow-petrol/20">
+            <Package className="h-5 w-5 text-white" />
+          </div>
+          <Link href="/" className="flex flex-col" onClick={() => setMobileOpen(false)}>
+            <span className="text-[15px] font-bold tracking-tight text-white">
+              AlphaSupply
+            </span>
+            <span className="text-[10px] font-medium tracking-wide text-sidebar-foreground/50">
+              LAGERVERWALTUNG
+            </span>
           </Link>
         </div>
 
+        {/* Divider with subtle glow */}
+        <div className="mx-4 h-px bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />
+
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {navigation.map((item) => {
             if ("items" in item && item.items) {
               return (
-                <div key={item.name} className="space-y-0.5">
-                  <p className="px-3 pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                <div key={item.name} className="mb-2">
+                  <p className="mb-1.5 px-3 pt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/40">
                     {item.name}
                   </p>
-                  {item.items.map((subItem) => {
-                    const knownSubPaths = ["/inventory/stock", "/inventory/movements", "/inventory/suppliers", "/inventory/locations"];
-                    const isActive =
-                      subItem.href === "/inventory"
-                        ? pathname === "/inventory" ||
-                          (pathname.startsWith("/inventory/") &&
-                            !knownSubPaths.some((p) => pathname.startsWith(p)))
-                        : pathname === subItem.href || pathname.startsWith(subItem.href + "/");
-                    return (
-                      <Link
-                        key={subItem.href}
-                        href={subItem.href}
-                        onClick={() => setMobileOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                          isActive
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                        )}
-                      >
-                        <subItem.icon className="h-4 w-4" />
-                        {subItem.name}
-                      </Link>
-                    );
-                  })}
+                  <div className="space-y-0.5">
+                    {item.items.map((subItem) => {
+                      const knownSubPaths = ["/inventory/stock", "/inventory/movements", "/inventory/suppliers", "/inventory/locations"];
+                      const isActive =
+                        subItem.href === "/inventory"
+                          ? pathname === "/inventory" ||
+                            (pathname.startsWith("/inventory/") &&
+                              !knownSubPaths.some((p) => pathname.startsWith(p)))
+                          : pathname === subItem.href || pathname.startsWith(subItem.href + "/");
+                      return (
+                        <Link
+                          key={subItem.href}
+                          href={subItem.href}
+                          onClick={() => setMobileOpen(false)}
+                          className={cn(
+                            "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
+                            isActive
+                              ? "bg-white/10 text-white shadow-sm"
+                              : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-white"
+                          )}
+                        >
+                          {isActive && (
+                            <span className="absolute left-0 h-6 w-1 rounded-r-full bg-petrol-light shadow-[0_0_8px_var(--color-petrol-light)]" />
+                          )}
+                          <subItem.icon className={cn(
+                            "h-[18px] w-[18px] transition-colors",
+                            isActive ? "text-petrol-light" : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70"
+                          )} />
+                          {subItem.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             }
@@ -147,11 +156,11 @@ export function Sidebar() {
               return (
                 <div
                   key={item.name}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground/40 cursor-not-allowed"
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-sidebar-foreground/25 cursor-not-allowed"
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-[18px] w-[18px]" />
                   {item.name}
-                  <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-[9px] font-semibold uppercase">
+                  <span className="ml-auto rounded-md bg-white/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/30">
                     Bald
                   </span>
                 </div>
@@ -164,13 +173,19 @@ export function Sidebar() {
                 href={item.href!}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                  "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
                   isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    ? "bg-white/10 text-white shadow-sm"
+                    : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-white"
                 )}
               >
-                <Icon className="h-4 w-4" />
+                {isActive && (
+                  <span className="absolute left-0 h-6 w-1 rounded-r-full bg-petrol-light shadow-[0_0_8px_var(--color-petrol-light)]" />
+                )}
+                <Icon className={cn(
+                  "h-[18px] w-[18px] transition-colors",
+                  isActive ? "text-petrol-light" : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70"
+                )} />
                 {item.name}
               </Link>
             );
@@ -178,8 +193,9 @@ export function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-sidebar-border p-4">
-          <p className="text-center text-[11px] font-medium text-muted-foreground">
+        <div className="mx-4 h-px bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />
+        <div className="px-5 py-4">
+          <p className="text-[10px] font-medium tracking-wide text-sidebar-foreground/30">
             Alpha IT Innovations GmbH
           </p>
         </div>
