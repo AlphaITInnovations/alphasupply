@@ -31,7 +31,7 @@ export async function createOrder(data: {
   try {
     const orderNumber = await getNextOrderNumber();
 
-    // Determine needsOrdering for each item by looking up article category
+    // Determine needsOrdering: ALL items need ordering UNLESS entire order is pure CONSUMABLE
     const articleIds = items.filter((i) => i.articleId).map((i) => i.articleId!);
     const articles = articleIds.length > 0
       ? await db.article.findMany({
@@ -41,27 +41,28 @@ export async function createOrder(data: {
       : [];
     const articleMap = new Map(articles.map((a) => [a.id, a]));
 
+    const hasFreeText = items.some((i) => !i.articleId);
+    const hasMobilfunk = mobilfunk && mobilfunk.length > 0;
+    const hasNonConsumable = items.some((i) => {
+      if (!i.articleId) return true; // freeText = non-consumable
+      const article = articleMap.get(i.articleId);
+      return !article || article.category !== "CONSUMABLE";
+    });
+
+    // Order needs procurement if it has freeText, mobilfunk, or any non-CONSUMABLE article
+    const orderNeedsOrdering = hasFreeText || hasMobilfunk || hasNonConsumable;
+
     const order = await db.order.create({
       data: {
         ...orderData,
         orderNumber,
         items: {
-          create: items.map((item) => {
-            let needsOrdering = true; // default: freeText items need ordering
-            if (item.articleId) {
-              const article = articleMap.get(item.articleId);
-              if (article) {
-                // CONSUMABLE = no ordering needed; SERIALIZED + STANDARD = needs ordering
-                needsOrdering = article.category !== "CONSUMABLE";
-              }
-            }
-            return {
-              articleId: item.articleId || null,
-              freeText: item.freeText || null,
-              quantity: item.quantity,
-              needsOrdering,
-            };
-          }),
+          create: items.map((item) => ({
+            articleId: item.articleId || null,
+            freeText: item.freeText || null,
+            quantity: item.quantity,
+            needsOrdering: orderNeedsOrdering,
+          })),
         },
         ...(mobilfunk && mobilfunk.length > 0 && {
           mobilfunk: {
