@@ -14,7 +14,6 @@ import {
   Package,
   Plus,
   PackageCheck,
-  Layers,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,7 +76,7 @@ type ArticleOption = {
   unit: string;
 };
 
-type SortKey = "name" | "currentStock" | "category";
+type SortKey = "name" | "currentStock" | "category" | "productGroup";
 type SortDir = "asc" | "desc";
 
 const tierBadgeColors: Record<string, string> = {
@@ -109,8 +108,6 @@ export function StockOverview({
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const [groupByCategory, setGroupByCategory] = useState(true);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -142,7 +139,8 @@ export function StockOverview({
       result = result.filter(
         (a) =>
           a.name.toLowerCase().includes(q) ||
-          a.sku.toLowerCase().includes(q)
+          a.sku.toLowerCase().includes(q) ||
+          (a.productGroup || "").toLowerCase().includes(q)
       );
     }
 
@@ -159,45 +157,15 @@ export function StockOverview({
         case "category":
           cmp = a.category.localeCompare(b.category);
           break;
+        case "productGroup":
+          cmp = (a.productGroup || "").localeCompare(b.productGroup || "", "de");
+          break;
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
   }, [articles, search, sortKey, sortDir]);
 
   const totalStock = filtered.reduce((sum, a) => sum + a.currentStock, 0);
-
-  // Group articles by productGroup
-  const grouped = useMemo(() => {
-    if (!groupByCategory) return null;
-    const groups: { name: string; articles: typeof filtered; totalStock: number }[] = [];
-    const map = new Map<string, typeof filtered>();
-    for (const a of filtered) {
-      const key = a.productGroup || "Sonstige";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(a);
-    }
-    for (const [name, arts] of map) {
-      groups.push({
-        name,
-        articles: arts,
-        totalStock: arts.reduce((s, a) => s + a.currentStock, 0),
-      });
-    }
-    groups.sort((a, b) => a.name.localeCompare(b.name, "de"));
-    return groups;
-  }, [filtered, groupByCategory]);
-
-  function toggleGroup(groupName: string) {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupName)) {
-        next.delete(groupName);
-      } else {
-        next.add(groupName);
-      }
-      return next;
-    });
-  }
 
   const SortHeader = ({
     label,
@@ -237,27 +205,16 @@ export function StockOverview({
 
   return (
     <div className="space-y-4">
-      {/* Search + Group Toggle + Manual Stock-In */}
+      {/* Search + Manual Stock-In */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Artikel suchen..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Button
-            variant={groupByCategory ? "default" : "outline"}
-            size="sm"
-            onClick={() => setGroupByCategory(!groupByCategory)}
-            className="shrink-0"
-          >
-            <Layers className="mr-1.5 h-3.5 w-3.5" />
-            Gruppiert
-          </Button>
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Artikel suchen..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
         </div>
         <ManualStockInDialog allArticles={allArticles} />
       </div>
@@ -278,6 +235,9 @@ export function StockOverview({
           <TableHeader>
             <TableRow className="border-border/50 bg-muted/30 hover:bg-muted/30">
               <TableHead className="w-10" />
+              <TableHead className="py-3">
+                <SortHeader label="Kategorie" sortKeyName="productGroup" />
+              </TableHead>
               <TableHead className="py-3">
                 <SortHeader label="Artikel" sortKeyName="name" />
               </TableHead>
@@ -308,7 +268,7 @@ export function StockOverview({
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-12">
+                <TableCell colSpan={9} className="py-12">
                   <div className="flex flex-col items-center text-center">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                       <Package className="h-6 w-6 text-muted-foreground" />
@@ -322,51 +282,6 @@ export function StockOverview({
                   </div>
                 </TableCell>
               </TableRow>
-            ) : groupByCategory && grouped ? (
-              grouped.map((group) => (
-                <Fragment key={group.name}>
-                  {/* Group header row */}
-                  <TableRow
-                    className="bg-muted/40 hover:bg-muted/50 cursor-pointer border-border/50"
-                    onClick={() => toggleGroup(group.name)}
-                  >
-                    <TableCell className="w-10 px-3">
-                      <div className="flex h-5 w-5 items-center justify-center">
-                        {collapsedGroups.has(group.name) ? (
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-primary" />
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell colSpan={5}>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold">{group.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {group.articles.length} {group.articles.length === 1 ? "Artikel" : "Artikel"}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right hidden lg:table-cell" />
-                    <TableCell>
-                      <span className="text-sm font-bold tabular-nums">
-                        {group.totalStock} <span className="text-[10px] font-normal text-muted-foreground">Stk</span>
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                  {/* Articles in this group */}
-                  {!collapsedGroups.has(group.name) &&
-                    group.articles.map((article) => (
-                      <ArticleRow
-                        key={article.id}
-                        article={article}
-                        expandedRows={expandedRows}
-                        toggleExpand={toggleExpand}
-                        stockColor={stockColor}
-                      />
-                    ))}
-                </Fragment>
-              ))
             ) : (
               filtered.map((article) => (
                 <ArticleRow
@@ -420,6 +335,11 @@ function ArticleRow({
               )}
             </div>
           )}
+        </TableCell>
+        <TableCell>
+          <span className="text-xs font-medium text-muted-foreground">
+            {article.productGroup || "\u2013"}
+          </span>
         </TableCell>
         <TableCell>
           <Link
@@ -481,7 +401,7 @@ function ArticleRow({
       {hasSerialnumbers && isExpanded && (
         <TableRow className="bg-muted/20 hover:bg-muted/20 border-border/30">
           <TableCell />
-          <TableCell colSpan={7} className="py-3 pr-6">
+          <TableCell colSpan={8} className="py-3 pr-6">
             <div className="space-y-2.5">
               <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
                 <Hash className="h-3 w-3" />
