@@ -62,7 +62,6 @@ export async function receiveOrderItem(data: {
     await syncOrderStatus(data.orderId);
     revalidatePath("/wareneingang");
     revalidatePath("/lager");
-    revalidatePath("/lager");
     revalidatePath("/auftraege");
     revalidatePath(`/auftraege/${data.orderId}`);
     revalidatePath("/");

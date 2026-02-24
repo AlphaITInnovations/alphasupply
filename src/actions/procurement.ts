@@ -36,7 +36,6 @@ export async function markItemOrdered(data: {
 
     await syncOrderStatus(data.orderId);
     revalidatePath("/auftraege");
-    revalidatePath("/auftraege");
     revalidatePath(`/auftraege/${data.orderId}`);
     revalidatePath("/lager");
     revalidatePath("/wareneingang");
@@ -65,7 +64,6 @@ export async function markMobilfunkOrdered(data: {
 
     await syncOrderStatus(data.orderId);
     revalidatePath("/auftraege");
-    revalidatePath("/auftraege");
     revalidatePath(`/auftraege/${data.orderId}`);
     revalidatePath("/wareneingang");
     return { success: true };
@@ -82,7 +80,6 @@ export async function finishProcurement(orderId: string) {
     });
 
     await syncOrderStatus(orderId);
-    revalidatePath("/auftraege");
     revalidatePath("/auftraege");
     revalidatePath(`/auftraege/${orderId}`);
     return { success: true };

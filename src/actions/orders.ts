@@ -31,7 +31,7 @@ export async function createOrder(data: {
   try {
     const orderNumber = await getNextOrderNumber();
 
-    // Determine needsOrdering: ALL items need ordering UNLESS entire order is pure CONSUMABLE
+    // Determine needsOrdering per item based on article category
     const articleIds = items.filter((i) => i.articleId).map((i) => i.articleId!);
     const articles = articleIds.length > 0
       ? await db.article.findMany({
@@ -41,28 +41,27 @@ export async function createOrder(data: {
       : [];
     const articleMap = new Map(articles.map((a) => [a.id, a]));
 
-    const hasFreeText = items.some((i) => !i.articleId);
-    const hasMobilfunk = mobilfunk && mobilfunk.length > 0;
-    const hasNonConsumable = items.some((i) => {
-      if (!i.articleId) return true; // freeText = non-consumable
-      const article = articleMap.get(i.articleId);
-      return !article || article.category !== "LOW_TIER";
-    });
-
-    // Order needs procurement if it has freeText, mobilfunk, or any non-CONSUMABLE article
-    const orderNeedsOrdering = hasFreeText || hasMobilfunk || hasNonConsumable;
-
     const order = await db.order.create({
       data: {
         ...orderData,
         orderNumber,
         items: {
-          create: items.map((item) => ({
-            articleId: item.articleId || null,
-            freeText: item.freeText || null,
-            quantity: item.quantity,
-            needsOrdering: orderNeedsOrdering,
-          })),
+          create: items.map((item) => {
+            // Per-item: freeText always needs ordering, LOW_TIER (consumables) do not
+            let itemNeedsOrdering = false;
+            if (!item.articleId) {
+              itemNeedsOrdering = true; // freeText = needs ordering
+            } else {
+              const article = articleMap.get(item.articleId);
+              itemNeedsOrdering = !article || article.category !== "LOW_TIER";
+            }
+            return {
+              articleId: item.articleId || null,
+              freeText: item.freeText || null,
+              quantity: item.quantity,
+              needsOrdering: itemNeedsOrdering,
+            };
+          }),
         },
         ...(mobilfunk && mobilfunk.length > 0 && {
           mobilfunk: {

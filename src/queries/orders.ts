@@ -59,7 +59,7 @@ export async function getOrders(options?: {
   if (filter === "proc") {
     // Beschaffung: orders that have items needing ordering
     return enriched.filter((o) => {
-      const needsOrdering = o.items.some((item) => item.article && !item.orderedAt);
+      const needsOrdering = o.items.some((item) => item.needsOrdering && !item.orderedAt);
       const needsMobilfunkOrdering = (o.mobilfunk ?? []).some((m: { ordered: boolean }) => !m.ordered);
       return (needsOrdering || needsMobilfunkOrdering) && !["COMPLETED", "CANCELLED"].includes(o.computedStatus);
     });

@@ -5,11 +5,16 @@ import { revalidatePath } from "next/cache";
 import { syncOrderStatus } from "@/actions/orders";
 
 export async function setTechnicianName(orderId: string, name: string) {
-  await db.order.update({
-    where: { id: orderId },
-    data: { technicianName: name },
-  });
-  revalidatePath(`/auftraege/${orderId}`);
+  try {
+    await db.order.update({
+      where: { id: orderId },
+      data: { technicianName: name },
+    });
+    revalidatePath(`/auftraege/${orderId}`);
+    return { success: true };
+  } catch {
+    return { error: "Fehler beim Setzen des Technikernamens." };
+  }
 }
 
 export async function pickItem(data: {
@@ -25,6 +30,11 @@ export async function pickItem(data: {
       const article = await tx.article.findUniqueOrThrow({
         where: { id: data.articleId },
       });
+
+      // HIGH_TIER articles require a serial number
+      if (article.category === "HIGH_TIER" && !data.serialNumberId) {
+        throw new Error("Seriennummer erforderlich für serialisierte Artikel.");
+      }
 
       if (article.currentStock < data.quantity) {
         throw new Error(`Nicht genug Bestand. Verfügbar: ${article.currentStock}`);
