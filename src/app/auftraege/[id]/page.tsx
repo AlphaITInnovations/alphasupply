@@ -1,17 +1,38 @@
 export const dynamic = "force-dynamic";
 
-export default async function AuftragsdetailPage({ params }: { params: Promise<{ id: string }> }) {
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { getOrderDetailFull } from "@/queries/orders";
+import { OrderDetail } from "@/components/auftraege/order-detail";
+
+export default async function AuftragsdetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
+  const order = await getOrderDetailFull(id);
+
+  if (!order) {
+    notFound();
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Auftragsdetail</h1>
-        <p className="text-muted-foreground">Auftrag {id}</p>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/auftraege">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <div>
+          <p className="text-sm text-muted-foreground">Auftragsdetail</p>
+        </div>
       </div>
-      <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-        In Entwicklung...
-      </div>
+
+      <OrderDetail order={order} />
     </div>
   );
 }
