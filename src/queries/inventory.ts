@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { ArticleCategory } from "@/generated/prisma/client";
-import { computeAvailability } from "@/queries/techniker";
+import { computeAvailability, type Availability } from "@/queries/techniker";
+import { computeOrderStatus } from "@/types/orders";
 
 export async function getArticles(options?: {
   category?: ArticleCategory;
@@ -160,6 +161,138 @@ export async function getArticlesForReceiving() {
     },
     orderBy: { name: "asc" },
   });
+}
+
+// ─── Pipeline Dashboard ──────────────────────────────────
+
+export type PipelineOrder = {
+  id: string;
+  orderNumber: string;
+  orderedFor: string;
+  costCenter: string;
+  createdAt: Date;
+  itemCount: number;
+  mobilfunkCount: number;
+  availability: Availability;
+};
+
+export type PipelineData = {
+  pipeline: {
+    neu: PipelineOrder[];
+    einrichten: PipelineOrder[];
+    bestellen: PipelineOrder[];
+    wareneingang: PipelineOrder[];
+    versandbereit: PipelineOrder[];
+  };
+  completedCount: number;
+  lowStockArticles: {
+    id: string;
+    name: string;
+    sku: string;
+    currentStock: number;
+    minStockLevel: number;
+  }[];
+};
+
+export async function getPipelineOrders(): Promise<PipelineData> {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const [orders, completedCount, lowStockArticles] = await Promise.all([
+    db.order.findMany({
+      where: { status: { notIn: ["CANCELLED", "COMPLETED"] } },
+      include: {
+        items: {
+          include: {
+            article: { select: { currentStock: true } },
+          },
+        },
+        mobilfunk: true,
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    db.order.count({
+      where: {
+        status: "COMPLETED",
+        updatedAt: { gte: thirtyDaysAgo },
+      },
+    }),
+    db.article.findMany({
+      where: {
+        isActive: true,
+        minStockLevel: { gt: 0 },
+        currentStock: { lte: db.article.fields.minStockLevel },
+      },
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        currentStock: true,
+        minStockLevel: true,
+      },
+      orderBy: { currentStock: "asc" },
+    }),
+  ]);
+
+  const pipeline: PipelineData["pipeline"] = {
+    neu: [],
+    einrichten: [],
+    bestellen: [],
+    wareneingang: [],
+    versandbereit: [],
+  };
+
+  for (const order of orders) {
+    const computed = computeOrderStatus(order);
+    const availability = computeAvailability(order.items);
+
+    const card: PipelineOrder = {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      orderedFor: order.orderedFor,
+      costCenter: order.costCenter,
+      createdAt: order.createdAt,
+      itemCount: order.items.length,
+      mobilfunkCount: order.mobilfunk.length,
+      availability,
+    };
+
+    if (computed === "NEW") {
+      pipeline.neu.push(card);
+      continue;
+    }
+
+    if (computed === "READY") {
+      pipeline.versandbereit.push(card);
+      continue;
+    }
+
+    // IN_PROGRESS → most actionable column
+    const needsTech = !order.techDoneAt;
+    const stockOk = availability !== "red";
+
+    const needsOrdering =
+      order.items.some((i) => i.needsOrdering && !i.orderedAt) ||
+      order.mobilfunk.some((mf) => !mf.ordered);
+
+    const awaitingReceipt =
+      order.items.some(
+        (i) => i.needsOrdering && !!i.orderedAt && i.receivedQty < i.quantity
+      ) || order.mobilfunk.some((mf) => mf.ordered && !mf.received);
+
+    if (needsTech && stockOk) {
+      pipeline.einrichten.push(card);
+    } else if (needsOrdering) {
+      pipeline.bestellen.push(card);
+    } else if (awaitingReceipt) {
+      pipeline.wareneingang.push(card);
+    } else if (needsTech) {
+      pipeline.bestellen.push(card);
+    } else {
+      pipeline.versandbereit.push(card);
+    }
+  }
+
+  return { pipeline, completedCount, lowStockArticles };
 }
 
 export async function getDashboardStats() {

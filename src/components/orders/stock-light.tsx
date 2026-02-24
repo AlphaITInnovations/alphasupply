@@ -1,5 +1,3 @@
-"use client";
-
 import type { StockAvailability } from "@/types/orders";
 
 const config: Record<StockAvailability, { color: string; glow: string; label: string }> = {
