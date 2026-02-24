@@ -442,6 +442,102 @@ async function runMigrations(client) {
     `);
     console.log("Migration 15: Created Inventory + InventoryItem tables.");
   }
+
+  // Migration 16: Fresh inventory data from Excel import
+  // Wipe all existing data and insert real hardware inventory
+  const hasMigration16 = await client.query(
+    `SELECT EXISTS (SELECT 1 FROM "Article" WHERE "id" = 'inv-lenovo-dock-usbc')`
+  );
+  if (!hasMigration16.rows[0].exists) {
+    console.log("Migration 16: Importing real hardware inventory...");
+
+    // Delete all dependent data first (order of FKs matters)
+    await client.query(`DELETE FROM "InventoryItem"`);
+    await client.query(`DELETE FROM "Inventory"`);
+    await client.query(`DELETE FROM "StockMovement"`);
+    await client.query(`DELETE FROM "SerialNumber"`);
+    await client.query(`DELETE FROM "OrderItem"`);
+    await client.query(`DELETE FROM "OrderMobilfunk"`);
+    await client.query(`DELETE FROM "Order"`);
+    await client.query(`DELETE FROM "ArticleSupplier"`);
+    await client.query(`DELETE FROM "StockLocation"`);
+    await client.query(`DELETE FROM "Article"`);
+    console.log("  Cleared all existing data.");
+
+    // Insert articles from Excel "Artikelübersicht"
+    const articles = [
+      { id: 'inv-lenovo-dock-usbc', name: 'Lenovo ThinkPad Universal USB-C Dock', sku: 'ART-001', category: 'HIGH_TIER', group: 'Dockingstation', sub: 'USB-C', price: 123.74, unit: 'Stk', stock: 2 },
+      { id: 'inv-jabra-ev2-65', name: 'Jabra Evolve2 65', sku: 'ART-002', category: 'MID_TIER', group: 'Headset', sub: 'Bluetooth', price: 127.24, unit: 'Stk', stock: 0 },
+      { id: 'inv-lenovo-tb14-g7', name: 'Lenovo ThinkBook 14 G7 ARP', sku: 'ART-003', category: 'HIGH_TIER', group: 'Laptop', sub: '14 Zoll', price: 599.38, unit: 'Stk', stock: 2 },
+      { id: 'inv-lenovo-tb16-g7', name: 'Lenovo ThinkBook 16 G7 ARP', sku: 'ART-004', category: 'HIGH_TIER', group: 'Laptop', sub: '16 Zoll', price: 603.56, unit: 'Stk', stock: 0 },
+      { id: 'inv-hp-probook-455', name: 'HP ProBook 455', sku: 'ART-005', category: 'HIGH_TIER', group: 'Laptop', sub: '15.6 Zoll', price: 592.29, unit: 'Stk', stock: 1 },
+      { id: 'inv-hp-elitebook-665', name: 'HP EliteBook 665', sku: 'ART-006', category: 'HIGH_TIER', group: 'Laptop', sub: '15.6 Zoll', price: 719.00, unit: 'Stk', stock: 1 },
+      { id: 'inv-lenovo-neo50q', name: 'Lenovo ThinkCentre neo 50q Gen 4', sku: 'ART-007', category: 'HIGH_TIER', group: 'Mini-PC', sub: 'Desktop', price: 495.01, unit: 'Stk', stock: 2 },
+      { id: 'inv-iiyama-xub2792', name: 'iiyama ProLite XUB2792HSU-W6 (27")', sku: 'ART-008', category: 'HIGH_TIER', group: 'Monitor', sub: '27 Zoll', price: 118.34, unit: 'Stk', stock: 15 },
+      { id: 'inv-lenovo-t210', name: 'Lenovo T210 15.6" Toploader', sku: 'ART-009', category: 'LOW_TIER', group: 'Tasche', sub: 'Laptop-Tasche', price: 11.43, unit: 'Stk', stock: 9 },
+      { id: 'inv-dell-km5221w', name: 'Dell Pro KM5221W Set', sku: 'ART-010', category: 'LOW_TIER', group: 'Tastatur/Maus', sub: 'Wireless Set', price: 40.43, unit: 'Stk', stock: 6 },
+      { id: 'inv-yealink-t54w', name: 'Yealink SIP-T54W', sku: 'ART-011', category: 'HIGH_TIER', group: 'Telefon', sub: 'IP-Telefon', price: 123.90, unit: 'Stk', stock: 4 },
+      { id: 'inv-logitech-brio300', name: 'Logitech Brio 300', sku: 'ART-012', category: 'HIGH_TIER', group: 'Webcam', sub: 'Full HD', price: 40.28, unit: 'Stk', stock: 1 },
+      { id: 'inv-logitech-brio105', name: 'Logitech Brio 105', sku: 'ART-013', category: 'HIGH_TIER', group: 'Webcam', sub: 'Full HD', price: 21.00, unit: 'Stk', stock: 1 },
+    ];
+
+    for (const art of articles) {
+      await client.query(
+        `INSERT INTO "Article" ("id", "name", "description", "sku", "category", "productGroup", "productSubGroup", "avgPurchasePrice", "unit", "minStockLevel", "currentStock", "incomingStock", "imageUrl", "isActive", "notes", "createdAt", "updatedAt")
+         VALUES ($1, $2, NULL, $3, $4::"ArticleCategory", $5, $6, $7, $8, 0, $9, 0, NULL, true, NULL, NOW(), NOW())`,
+        [art.id, art.name, art.sku, art.category, art.group, art.sub, art.price, art.unit, art.stock]
+      );
+    }
+    console.log("  Inserted " + articles.length + " articles.");
+
+    // Insert serial numbers from Excel "Inventar (mit Seriennummer)"
+    const serialNumbers = [
+      // Monitors (15)
+      { articleId: 'inv-iiyama-xub2792', sn: '1233653350451' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233653350446' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233652850844' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233652850445' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233652850448' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233652850836' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233652850833' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233643951093' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233643951078' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233652850839' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233650750945' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233650750946' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233650750756' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233652850441' },
+      { articleId: 'inv-iiyama-xub2792', sn: '1233650750633' },
+      // Dockingstations (2)
+      { articleId: 'inv-lenovo-dock-usbc', sn: '40AC0090EUZVR1FSAY' },
+      { articleId: 'inv-lenovo-dock-usbc', sn: '40AY0090EUZVR1KX7F' },
+      // Mini-PCs (2)
+      { articleId: 'inv-lenovo-neo50q', sn: 'YJ028ZAQ' },
+      { articleId: 'inv-lenovo-neo50q', sn: 'YJ028YQ6' },
+      // Laptops ThinkBook 14 (2)
+      { articleId: 'inv-lenovo-tb14-g7', sn: 'PW0KSRYN' },
+      { articleId: 'inv-lenovo-tb14-g7', sn: 'PW0LWHNB' },
+      // Telefone (4)
+      { articleId: 'inv-yealink-t54w', sn: '801081G100009624' },
+      { articleId: 'inv-yealink-t54w', sn: '201081G011213797' },
+      { articleId: 'inv-yealink-t54w', sn: '201081G011213800' },
+      { articleId: 'inv-yealink-t54w', sn: '201081G011212806' },
+      // HP ProBook (1)
+      { articleId: 'inv-hp-probook-455', sn: '5CD439CCPQ' },
+      // HP EliteBook (1)
+      { articleId: 'inv-hp-elitebook-665', sn: '5CD4223FQM' },
+    ];
+
+    for (const sn of serialNumbers) {
+      await client.query(
+        `INSERT INTO "SerialNumber" ("id", "serialNo", "articleId", "status", "isUsed", "notes", "createdAt", "updatedAt")
+         VALUES (gen_random_uuid()::text, $1, $2, 'IN_STOCK', false, NULL, NOW(), NOW())`,
+        [sn.sn, sn.articleId]
+      );
+    }
+    console.log("  Inserted " + serialNumbers.length + " serial numbers.");
+    console.log("Migration 16: Hardware inventory import complete.");
+  }
 }
 
 main().catch((err) => {
