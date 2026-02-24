@@ -7,6 +7,7 @@ import { getOrders } from "@/queries/orders";
 import { OrderSearch } from "@/components/orders/order-search";
 import { OrderListClient } from "@/components/orders/order-list-client";
 import { OrderFilterTabs } from "@/components/orders/order-filter-tabs";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function OrdersPage({
   searchParams,
@@ -34,6 +35,7 @@ export default async function OrdersPage({
 
   return (
     <div className="space-y-4">
+      <PageHeader title="Aufträge" description="Aufträge verwalten und verfolgen" />
       <div className="flex items-center gap-4 justify-between">
         <OrderFilterTabs current={validFilter} />
         <OrderSearch defaultValue={search} />

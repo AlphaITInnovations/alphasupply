@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { OrderForm } from "@/components/orders/order-form";
+import { PageHeader } from "@/components/layout/page-header";
 import { getArticlesForReceiving } from "@/queries/inventory";
 
 export default async function NewOrderPage() {
@@ -22,6 +23,7 @@ export default async function NewOrderPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
+      <PageHeader title="Neuer Auftrag" description="Auftrag manuell anlegen" />
       <OrderForm articles={articlesWithStock} />
     </div>
   );

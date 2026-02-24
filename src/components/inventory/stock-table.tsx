@@ -35,7 +35,7 @@ type SortKey = "name" | "sku" | "category" | "currentStock" | "minStockLevel";
 type SortDir = "asc" | "desc";
 
 const categoryColors: Record<string, string> = {
-  SERIALIZED: "bg-petrol/10 text-petrol border-petrol/20",
+  SERIALIZED: "bg-indigo/10 text-indigo border-indigo/20",
   STANDARD: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
   CONSUMABLE: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
 };

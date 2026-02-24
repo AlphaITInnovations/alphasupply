@@ -81,7 +81,7 @@ export default async function ArticleDetailPage({
       {/* Bestandskarten */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-petrol/5 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo/5 to-transparent" />
           <CardHeader className="relative pb-2">
             <CardTitle className="text-sm font-medium">
               Aktueller Bestand

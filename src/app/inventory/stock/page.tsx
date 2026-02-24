@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { Package, AlertTriangle, Hash } from "lucide-react";
 import { getStockArticles } from "@/queries/inventory";
 import { StockTable } from "@/components/inventory/stock-table";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function StockPage() {
   const articles = await getStockArticles();
@@ -15,11 +16,12 @@ export default async function StockPage() {
 
   return (
     <div className="space-y-6">
+      <PageHeader title="Lager" description="Aktuelle Bestände und Seriennummern" />
       {/* Summary Stats */}
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-card p-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-petrol/10">
-            <Package className="h-5 w-5 text-petrol" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo/10">
+            <Package className="h-5 w-5 text-indigo" />
           </div>
           <div>
             <p className="text-2xl font-bold tracking-tight">{articles.length}</p>
@@ -27,8 +29,8 @@ export default async function StockPage() {
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-card p-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-petrol-light/10">
-            <Hash className="h-5 w-5 text-petrol-light" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-light/10">
+            <Hash className="h-5 w-5 text-indigo-light" />
           </div>
           <div>
             <p className="text-2xl font-bold tracking-tight">{totalSerialized}</p>

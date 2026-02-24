@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Smartphone } from "lucide-react";
+import { ArrowRight, Smartphone } from "lucide-react";
 import type { PipelineOrder } from "@/queries/inventory";
 import { StockLight } from "@/components/orders/stock-light";
 
@@ -32,30 +32,44 @@ export function PipelineCard({ order, tab }: { order: PipelineOrder; tab?: strin
   return (
     <Link
       href={href}
-      className="group block rounded-lg border border-border/50 bg-card p-3 transition-all duration-200 hover:border-border hover:shadow-md hover:-translate-y-0.5"
+      className="group block rounded-xl border border-border/50 bg-card p-3.5 shadow-sm transition-all duration-200 hover:border-border hover:shadow-elevated hover:-translate-y-0.5"
     >
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-sm font-bold">{order.orderNumber}</span>
         <StockLight availability={order.availability} size="sm" />
       </div>
-      <p className="mt-1 truncate text-sm text-muted-foreground">
+      <p className="mt-1.5 truncate text-sm font-medium text-foreground/80">
         {order.orderedFor}
       </p>
-      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-        <span>KS {order.costCenter}</span>
-        <span>&middot;</span>
-        <span>{order.itemCount} Pos.</span>
-        {order.mobilfunkCount > 0 && <Smartphone className="h-3 w-3" />}
-        <span className="ml-auto">
-          {cta ? (
-            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-primary font-medium">
-              {cta} &rarr;
-            </span>
-          ) : null}
-          <span className={cta ? "group-hover:hidden" : ""}>
-            {formatRelative(order.createdAt)}
-          </span>
+
+      {/* Metadata chips */}
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+          KS {order.costCenter}
         </span>
+        <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+          {order.itemCount} Pos.
+        </span>
+        {order.mobilfunkCount > 0 && (
+          <span className="inline-flex items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <Smartphone className="h-2.5 w-2.5" />
+            {order.mobilfunkCount}
+          </span>
+        )}
+      </div>
+
+      {/* Timestamp + CTA */}
+      <div className="mt-2.5 flex items-center justify-between text-xs text-muted-foreground">
+        <span className={cta ? "group-hover:hidden" : ""}>
+          {formatRelative(order.createdAt)}
+        </span>
+        {cta && (
+          <span className="hidden items-center gap-1 font-medium text-primary group-hover:inline-flex">
+            {cta}
+            <ArrowRight className="h-3 w-3" />
+          </span>
+        )}
+        {!cta && <span />}
       </div>
     </Link>
   );

@@ -12,7 +12,7 @@ Interne IT Lager-, Bestell- und Auftragsverwaltung der Alpha IT Innovations.
 ## Projektstruktur
 - `src/app/` - Next.js Seiten (App Router)
 - `src/components/ui/` - shadcn/ui Basis-Komponenten
-- `src/components/layout/` - Layout (Sidebar, Header, ThemeToggle)
+- `src/components/layout/` - Layout (Navbar, PageHeader, ThemeToggle)
 - `src/components/inventory/` - Lagerverwaltungs-Komponenten
 - `src/actions/` - Server Actions (Mutationen)
 - `src/queries/` - Daten-Abfragen (Server Components)
@@ -33,7 +33,7 @@ Interne IT Lager-, Bestell- und Auftragsverwaltung der Alpha IT Innovations.
 - **CONSUMABLE**: Verbrauchsmaterial, nachbestellen wenn leer
 
 ## Design
-- Farbschema: Petrol (#0D7377) als Primary-Farbe
+- Farbschema: Slate/Indigo (Primary oklch(0.55 0.23 264)), horizontale Top-Nav
 - Dark/Light Mode via next-themes
 - UI-Sprache: Deutsch
 

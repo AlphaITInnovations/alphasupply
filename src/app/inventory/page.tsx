@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { getArticles, getArticleGroupSuggestions } from "@/queries/inventory";
 import { ArticleCategory } from "@/generated/prisma/client";
 import { ArticleListTable } from "@/components/inventory/article-list-table";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function InventoryPage({
   searchParams,
@@ -32,12 +33,10 @@ export default async function InventoryPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Artikelliste</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {articles.length} Artikel {params.category || params.search ? "(gefiltert)" : "gesamt"}
-          </p>
-        </div>
+        <PageHeader
+          title="Artikelliste"
+          description={`${articles.length} Artikel ${params.category || params.search ? "(gefiltert)" : "gesamt"}`}
+        />
         <Button asChild className="shadow-sm">
           <Link href="/inventory/new">
             <Plus className="mr-2 h-4 w-4" />

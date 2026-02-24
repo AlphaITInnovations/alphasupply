@@ -10,6 +10,7 @@ import {
   getNextArticleNumber,
 } from "@/queries/inventory";
 import { getPendingReceivingOrders } from "@/queries/receiving";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function ReceivingPage() {
   const [articles, groupSuggestions, nextSku, pendingOrders] = await Promise.all([
@@ -22,7 +23,7 @@ export default async function ReceivingPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Wareneingang</h1>
+        <PageHeader title="Wareneingang" description="Ware einbuchen und Seriennummern erfassen" />
         <ManualReceivingDialog
           articles={articles}
           groupSuggestions={groupSuggestions}

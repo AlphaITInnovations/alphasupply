@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getActiveMobilfunk } from "@/queries/mobilfunk";
+import { PageHeader } from "@/components/layout/page-header";
 import { mobilfunkTypeLabels, simTypeLabels, mobilfunkTariffLabels } from "@/types/orders";
 
 export default async function MobilfunkPage() {
@@ -20,7 +21,7 @@ export default async function MobilfunkPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Mobilfunk - Geräte im Umlauf</h1>
+      <PageHeader title="Mobilfunk" description="Eingerichtete Geräte im Umlauf" />
 
       {entries.length === 0 ? (
         <Card>

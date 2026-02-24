@@ -4,6 +4,7 @@ import { ShoppingCart } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getProcurementOrders, getSuppliers } from "@/queries/procurement";
 import { ProcurementForm } from "@/components/procurement/procurement-form";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function ProcurementPage() {
   const [orders, suppliers] = await Promise.all([
@@ -17,7 +18,7 @@ export default async function ProcurementPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Beschaffung</h1>
+      <PageHeader title="Bestellwesen" description="Nachbestellungen verwalten" />
 
       {orders.length === 0 ? (
         <Card>
