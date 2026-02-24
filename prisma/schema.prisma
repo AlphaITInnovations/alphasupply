@@ -88,6 +88,7 @@ model Article {
   articleSuppliers ArticleSupplier[]
   stockLocations   StockLocation[]
   orderItems       OrderItem[]
+  inventoryItems   InventoryItem[]
 
   @@index([category])
   @@index([name])
@@ -310,4 +311,49 @@ model OrderMobilfunk {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+}
+
+// ─── INVENTUR ───────────────────────────────────────────
+
+enum InventoryStatus {
+  IN_PROGRESS // Laufend
+  COMPLETED   // Abgeschlossen
+  CANCELLED   // Abgebrochen
+}
+
+model Inventory {
+  id          String          @id @default(cuid())
+  name        String          // z.B. "Inventur Q1 2026"
+  status      InventoryStatus @default(IN_PROGRESS)
+  startedBy   String          // Wer hat die Inventur gestartet
+  completedAt DateTime?       // Wann abgeschlossen
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items InventoryItem[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model InventoryItem {
+  id             String    @id @default(cuid())
+  inventoryId    String
+  articleId      String
+  expectedQty    Int       // Soll-Bestand (aus Article.currentStock beim Start)
+  countedQty     Int?      // Ist-Bestand (gezählt)
+  difference     Int?      // Differenz (counted - expected)
+  checked        Boolean   @default(false) // Geprüft
+  checkedBy      String?   // Wer hat geprüft
+  checkedAt      DateTime? // Wann geprüft
+  notes          String?   // Anmerkungen zur Position
+
+  inventory Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  article   Article   @relation(fields: [articleId], references: [id])
+
+  @@unique([inventoryId, articleId])
+  @@index([inventoryId])
+  @@index([articleId])
 }

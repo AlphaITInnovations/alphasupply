@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
   ClipboardList,
   LayoutDashboard,
   Menu,
@@ -56,6 +57,7 @@ const navSections: NavSection[] = [
       { name: "Lager", href: "/lager", icon: Warehouse },
       { name: "Artikelliste", href: "/artikelverwaltung", icon: Package },
       { name: "Wareneingang", href: "/wareneingang", icon: PackageCheck },
+      { name: "Inventur", href: "/inventur", icon: ClipboardCheck },
     ],
   },
   {
