@@ -58,7 +58,7 @@ export function ManualReceivingDialog({
   const [showNewArticleDialog, setShowNewArticleDialog] = useState(false);
   const [keyCounter, setKeyCounter] = useState(0);
 
-  const isSerialized = selectedArticle?.category === "SERIALIZED";
+  const isSerialized = selectedArticle?.category === "HIGH_TIER";
 
   const filteredArticles = search.trim()
     ? articles.filter(
@@ -80,7 +80,7 @@ export function ManualReceivingDialog({
   function handleSelectArticle(article: Article) {
     setSelectedArticle(article);
     setSearch("");
-    if (article.category === "SERIALIZED") {
+    if (article.category === "HIGH_TIER") {
       setQuantity(1);
       setSerialEntries([{ key: keyCounter, serialNo: "", isUsed: false }]);
       setKeyCounter((k) => k + 1);

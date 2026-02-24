@@ -1,0 +1,18 @@
+-- Rename ArticleCategory enum values
+ALTER TYPE "ArticleCategory" RENAME VALUE 'SERIALIZED' TO 'HIGH_TIER';
+ALTER TYPE "ArticleCategory" RENAME VALUE 'STANDARD' TO 'MID_TIER';
+ALTER TYPE "ArticleCategory" RENAME VALUE 'CONSUMABLE' TO 'LOW_TIER';
+
+-- Rename existing OrderStatus values
+ALTER TYPE "OrderStatus" RENAME VALUE 'IN_PROGRESS' TO 'IN_COMMISSION';
+ALTER TYPE "OrderStatus" RENAME VALUE 'READY' TO 'READY_TO_SHIP';
+
+-- Add new OrderStatus values
+ALTER TYPE "OrderStatus" ADD VALUE IF NOT EXISTS 'IN_SETUP';
+ALTER TYPE "OrderStatus" ADD VALUE IF NOT EXISTS 'SHIPPED';
+
+-- Add new columns to Order
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "commissionedAt" TIMESTAMP(3);
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "commissionedBy" TEXT;
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "setupDoneAt" TIMESTAMP(3);
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "setupDoneBy" TEXT;

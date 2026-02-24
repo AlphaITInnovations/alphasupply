@@ -46,7 +46,7 @@ export async function createOrder(data: {
     const hasNonConsumable = items.some((i) => {
       if (!i.articleId) return true; // freeText = non-consumable
       const article = articleMap.get(i.articleId);
-      return !article || article.category !== "CONSUMABLE";
+      return !article || article.category !== "LOW_TIER";
     });
 
     // Order needs procurement if it has freeText, mobilfunk, or any non-CONSUMABLE article
@@ -95,7 +95,7 @@ export async function updateOrderStatus(id: string, status: string) {
     await db.order.update({
       where: { id },
       data: {
-        status: status as "NEW" | "IN_PROGRESS" | "READY" | "COMPLETED" | "CANCELLED",
+        status: status as "NEW" | "IN_COMMISSION" | "IN_SETUP" | "READY_TO_SHIP" | "SHIPPED" | "COMPLETED" | "CANCELLED",
       },
     });
     revalidatePath("/orders");
@@ -118,7 +118,7 @@ export async function syncOrderStatus(orderId: string) {
   if (computed !== order.status) {
     await db.order.update({
       where: { id: orderId },
-      data: { status: computed as "NEW" | "IN_PROGRESS" | "READY" | "COMPLETED" | "CANCELLED" },
+      data: { status: computed as "NEW" | "IN_COMMISSION" | "IN_SETUP" | "READY_TO_SHIP" | "SHIPPED" | "COMPLETED" | "CANCELLED" },
     });
   }
 }

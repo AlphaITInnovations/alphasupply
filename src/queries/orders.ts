@@ -11,7 +11,7 @@ export async function getOrders(options?: {
 
   const orders = await db.order.findMany({
     where: {
-      ...(status && status !== "ALL" && { status: status as "NEW" | "IN_PROGRESS" | "READY" | "COMPLETED" | "CANCELLED" }),
+      ...(status && status !== "ALL" && { status: status as "NEW" | "IN_COMMISSION" | "IN_SETUP" | "READY_TO_SHIP" | "SHIPPED" | "COMPLETED" | "CANCELLED" }),
       ...(search && {
         OR: [
           { orderNumber: { contains: search, mode: "insensitive" } },

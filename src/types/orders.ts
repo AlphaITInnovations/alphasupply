@@ -2,16 +2,20 @@ import { z } from "zod/v4";
 
 export const orderStatusLabels: Record<string, string> = {
   NEW: "Neu",
-  IN_PROGRESS: "In Bearbeitung",
-  READY: "Bereit",
+  IN_COMMISSION: "Kommissionierung",
+  IN_SETUP: "Einrichtung",
+  READY_TO_SHIP: "Versandbereit",
+  SHIPPED: "Versendet",
   COMPLETED: "Abgeschlossen",
   CANCELLED: "Storniert",
 };
 
 export const orderStatusColors: Record<string, string> = {
   NEW: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
-  IN_PROGRESS: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
-  READY: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
+  IN_COMMISSION: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
+  IN_SETUP: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800",
+  READY_TO_SHIP: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
+  SHIPPED: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-800",
   COMPLETED: "bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-900 dark:text-gray-400 dark:border-gray-700",
   CANCELLED: "bg-red-50 text-red-600 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800",
 };
@@ -92,6 +96,8 @@ type OrderForStatus = {
   }[];
   trackingNumber: string | null;
   techDoneAt: Date | null;
+  setupDoneAt: Date | null;
+  shippedAt: Date | null;
   deliveryMethod: string;
 };
 
@@ -101,17 +107,13 @@ export function computeOrderStatus(order: OrderForStatus): string {
   const hasArticles = order.items.length > 0;
   const hasMobilfunk = order.mobilfunk.length > 0;
 
-  if (!hasArticles && !hasMobilfunk) return "NEW";
-
-  const needsOrdering = order.items.some((i) => i.needsOrdering) || hasMobilfunk;
-
   // Techniker-Stream
   const allPicked = order.items.every((i) => i.pickedQty >= i.quantity);
   const allMfSetup = order.mobilfunk.every((mf) => mf.setupDone);
-  const isShipped = !!order.trackingNumber || !!order.techDoneAt;
-  const techDone = allPicked && allMfSetup && (isShipped || (!hasArticles && !hasMobilfunk));
+  const isShipped = !!order.trackingNumber || !!order.shippedAt;
 
   // Bestell-Stream
+  const needsOrdering = order.items.some((i) => i.needsOrdering) || hasMobilfunk;
   const orderableItems = order.items.filter((i) => i.needsOrdering);
   const allOrdered = orderableItems.every((i) => i.orderedAt) &&
     order.mobilfunk.every((mf) => mf.ordered);
@@ -122,18 +124,22 @@ export function computeOrderStatus(order: OrderForStatus): string {
     order.mobilfunk.every((mf) => !mf.ordered || mf.received);
   const recvDone = !needsOrdering || allReceived;
 
-  if (techDone && procDone && recvDone) return "COMPLETED";
+  // COMPLETED: shipped AND all procurement + receiving done
+  if (isShipped && procDone && recvDone) return "COMPLETED";
 
-  // Any progress at all?
+  // SHIPPED: shipped (trackingNumber or shippedAt set)
+  if (isShipped) return "SHIPPED";
+
+  // READY_TO_SHIP: setupDoneAt set AND all items picked AND all mobilfunk setup
+  if (order.setupDoneAt && allPicked && allMfSetup) return "READY_TO_SHIP";
+
+  // IN_SETUP: all items picked AND all mobilfunk setup (but no setupDoneAt)
+  if (allPicked && allMfSetup && (hasArticles || hasMobilfunk)) return "IN_SETUP";
+
+  // IN_COMMISSION: any items picked
   const anyPicked = order.items.some((i) => i.pickedQty > 0);
-  const anyOrdered = orderableItems.some((i) => i.orderedAt);
-  const anyReceived = orderableItems.some((i) => i.receivedQty > 0);
   const anyMfSetup = order.mobilfunk.some((mf) => mf.setupDone);
-  const anyMfOrdered = order.mobilfunk.some((mf) => mf.ordered);
-
-  if (anyPicked || anyOrdered || anyReceived || anyMfSetup || anyMfOrdered) {
-    return "IN_PROGRESS";
-  }
+  if (anyPicked || anyMfSetup) return "IN_COMMISSION";
 
   return "NEW";
 }

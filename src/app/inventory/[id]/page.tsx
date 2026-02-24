@@ -123,9 +123,9 @@ export default async function ArticleDetailPage({
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue={article.category === "SERIALIZED" ? "serial" : "movements"}>
+      <Tabs defaultValue={article.category === "HIGH_TIER" ? "serial" : "movements"}>
         <TabsList>
-          {article.category === "SERIALIZED" && (
+          {article.category === "HIGH_TIER" && (
             <TabsTrigger value="serial">
               <Hash className="mr-2 h-4 w-4" />
               Seriennummern ({article.serialNumbers.length})
@@ -146,7 +146,7 @@ export default async function ArticleDetailPage({
         </TabsList>
 
         {/* Seriennummern */}
-        {article.category === "SERIALIZED" && (
+        {article.category === "HIGH_TIER" && (
           <TabsContent value="serial" className="space-y-4">
             <div className="flex justify-end">
               <SerialNumberForm articleId={article.id} />

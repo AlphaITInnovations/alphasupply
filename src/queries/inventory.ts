@@ -261,7 +261,7 @@ export async function getPipelineOrders(): Promise<PipelineData> {
       continue;
     }
 
-    if (computed === "READY") {
+    if (computed === "READY_TO_SHIP") {
       pipeline.versandbereit.push(card);
       continue;
     }
@@ -330,12 +330,12 @@ export async function getDashboardStats() {
       },
       orderBy: { createdAt: "desc" },
     }),
-    // Open orders (NEW or IN_PROGRESS)
-    db.order.count({ where: { status: { in: ["NEW", "IN_PROGRESS"] } } }),
+    // Open orders (active statuses)
+    db.order.count({ where: { status: { notIn: ["COMPLETED", "CANCELLED"] } } }),
     // Orders needing technician work — load items to compute availability
     db.order.findMany({
       where: {
-        status: { in: ["NEW", "IN_PROGRESS"] },
+        status: { notIn: ["COMPLETED", "CANCELLED"] },
         techDoneAt: null,
       },
       select: {
@@ -351,7 +351,7 @@ export async function getDashboardStats() {
     // Orders with pending procurement (items needing ordering that haven't been ordered)
     db.order.count({
       where: {
-        status: { in: ["NEW", "IN_PROGRESS"] },
+        status: { notIn: ["COMPLETED", "CANCELLED"] },
         OR: [
           { items: { some: { needsOrdering: true, orderedAt: null } } },
           { mobilfunk: { some: { ordered: false } } },

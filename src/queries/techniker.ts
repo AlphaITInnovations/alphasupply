@@ -4,7 +4,7 @@ import { computeOrderStatus } from "@/types/orders";
 export async function getTechOrders() {
   const orders = await db.order.findMany({
     where: {
-      status: { in: ["NEW", "IN_PROGRESS"] },
+      status: { in: ["NEW", "IN_COMMISSION", "IN_SETUP", "READY_TO_SHIP"] },
     },
     include: {
       items: {

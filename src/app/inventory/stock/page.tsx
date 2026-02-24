@@ -9,7 +9,7 @@ export default async function StockPage() {
   const articles = await getStockArticles();
 
   const totalItems = articles.reduce((sum, a) => sum + a.currentStock, 0);
-  const totalSerialized = articles.filter((a) => a.category === "SERIALIZED").length;
+  const totalSerialized = articles.filter((a) => a.category === "HIGH_TIER").length;
   const lowStock = articles.filter(
     (a) => a.currentStock <= a.minStockLevel && a.minStockLevel > 0
   ).length;

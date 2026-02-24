@@ -104,7 +104,7 @@ export function ArticleForm({
           <Label htmlFor="category">Kategorie *</Label>
           <Select
             name="category"
-            defaultValue={article?.category ?? "STANDARD"}
+            defaultValue={article?.category ?? "MID_TIER"}
           >
             <SelectTrigger>
               <SelectValue />

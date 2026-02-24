@@ -25,9 +25,9 @@ export default async function InventoryPage({
 
   const categoryFilters = [
     { key: undefined, label: "Alle" },
-    { key: "SERIALIZED", label: "Mit Seriennummer" },
-    { key: "STANDARD", label: "Standard" },
-    { key: "CONSUMABLE", label: "Schüttgut" },
+    { key: "HIGH_TIER", label: "High-Tier" },
+    { key: "MID_TIER", label: "Mid-Tier" },
+    { key: "LOW_TIER", label: "Low-Tier" },
   ];
 
   return (

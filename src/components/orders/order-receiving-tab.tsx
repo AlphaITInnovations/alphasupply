@@ -39,7 +39,7 @@ export function OrderReceivingTab({ order }: { order: FullOrder }) {
         return;
       }
 
-      const sns = item.article?.category === "SERIALIZED" ? (snInputs[item.id] || []) : undefined;
+      const sns = item.article?.category === "HIGH_TIER" ? (snInputs[item.id] || []) : undefined;
       const result = await receiveOrderItem({
         orderItemId: item.id,
         orderId: order.id,
@@ -120,7 +120,7 @@ export function OrderReceivingTab({ order }: { order: FullOrder }) {
           </CardHeader>
           <CardContent className="space-y-3">
             {pendingItems.map((item) => {
-              const isSerialized = item.article?.category === "SERIALIZED";
+              const isSerialized = item.article?.category === "HIGH_TIER";
               const sns = snInputs[item.id] || [];
 
               return (

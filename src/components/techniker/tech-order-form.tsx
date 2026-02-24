@@ -103,7 +103,7 @@ export function TechOrderForm({ order }: { order: TechOrder }) {
         orderId: order.id,
         articleId: item.article!.id,
         quantity: item.quantity,
-        serialNumberId: item.article!.category === "SERIALIZED" ? snSelection[item.id] : undefined,
+        serialNumberId: item.article!.category === "HIGH_TIER" ? snSelection[item.id] : undefined,
         technicianName: techName.trim(),
       });
       if (result.error) setError(result.error);
@@ -209,7 +209,7 @@ export function TechOrderForm({ order }: { order: TechOrder }) {
             {order.items.map((item) => {
               const isPicked = item.pickedQty >= item.quantity;
               const isFreeText = !item.article;
-              const isSerialized = item.article?.category === "SERIALIZED";
+              const isSerialized = item.article?.category === "HIGH_TIER";
               const availableSNs = item.article?.serialNumbers || [];
 
               return (

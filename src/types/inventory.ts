@@ -1,9 +1,9 @@
 import { z } from "zod/v4";
 
 export const articleCategoryLabels: Record<string, string> = {
-  SERIALIZED: "Mit Seriennummer",
-  STANDARD: "Standard",
-  CONSUMABLE: "Schüttgut",
+  HIGH_TIER: "High-Tier",
+  MID_TIER: "Mid-Tier",
+  LOW_TIER: "Low-Tier",
 };
 
 export const stockMovementTypeLabels: Record<string, string> = {
@@ -27,7 +27,7 @@ export const createArticleSchema = z.object({
   name: z.string().min(1, "Name ist erforderlich"),
   description: z.string().optional(),
   sku: z.string().min(1, "Artikelnummer ist erforderlich"),
-  category: z.enum(["SERIALIZED", "STANDARD", "CONSUMABLE"]),
+  category: z.enum(["HIGH_TIER", "MID_TIER", "LOW_TIER"]),
   productGroup: z.string().optional(),
   productSubGroup: z.string().optional(),
   avgPurchasePrice: z.coerce.number().min(0).optional(),

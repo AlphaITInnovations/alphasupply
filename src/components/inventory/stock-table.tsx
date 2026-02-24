@@ -35,9 +35,9 @@ type SortKey = "name" | "sku" | "category" | "currentStock" | "minStockLevel";
 type SortDir = "asc" | "desc";
 
 const categoryColors: Record<string, string> = {
-  SERIALIZED: "bg-indigo/10 text-indigo border-indigo/20",
-  STANDARD: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
-  CONSUMABLE: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
+  HIGH_TIER: "bg-indigo/10 text-indigo border-indigo/20",
+  MID_TIER: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
+  LOW_TIER: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
 };
 
 export function StockTable({ articles }: { articles: StockArticle[] }) {
@@ -152,7 +152,7 @@ export function StockTable({ articles }: { articles: StockArticle[] }) {
               const isLowStock =
                 article.currentStock <= article.minStockLevel && article.minStockLevel > 0;
               const hasSerialnumbers =
-                article.category === "SERIALIZED" && article.serialNumbers.length > 0;
+                article.category === "HIGH_TIER" && article.serialNumbers.length > 0;
               const isExpanded = expandedRows.has(article.id);
               const fillPercent = article.minStockLevel > 0
                 ? Math.min(100, Math.round((article.currentStock / article.minStockLevel) * 100))

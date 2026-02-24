@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 export async function getPendingReceivingOrders() {
   const orders = await db.order.findMany({
     where: {
-      status: { in: ["NEW", "IN_PROGRESS"] },
+      status: { in: ["NEW", "IN_COMMISSION", "IN_SETUP", "READY_TO_SHIP", "SHIPPED"] },
       OR: [
         {
           items: {

@@ -10,9 +10,9 @@ datasource db {
 // ─── ENUMS ───────────────────────────────────────────────
 
 enum ArticleCategory {
-  SERIALIZED  // Teure Artikel MIT Seriennummer, IMMER nachbestellen
-  STANDARD    // Artikel OHNE Seriennummer, nachbestellen pro Auftrag
-  CONSUMABLE  // Schüttgut (Kabel etc.), muss bei Aufträgen NICHT nachbestellt werden
+  HIGH_TIER   // Teure Artikel MIT Seriennummer, IMMER nachbestellen
+  MID_TIER    // Artikel OHNE Seriennummer, nachbestellen pro Auftrag
+  LOW_TIER    // Schüttgut (Kabel etc.), muss bei Aufträgen NICHT nachbestellt werden
 }
 
 enum StockMovementType {
@@ -31,11 +31,13 @@ enum SerialNumberStatus {
 }
 
 enum OrderStatus {
-  NEW          // Neu angelegt, noch nicht bearbeitet
-  IN_PROGRESS  // In Bearbeitung (Zusammenstellung/Einrichtung)
-  READY        // Bereit zur Abholung/Versand
-  COMPLETED    // Abgeschlossen
-  CANCELLED    // Storniert
+  NEW              // Neu angelegt
+  IN_COMMISSION    // Kommissionierung läuft
+  IN_SETUP         // Einrichtung läuft
+  READY_TO_SHIP    // Versandbereit
+  SHIPPED          // Versendet/Abgeholt
+  COMPLETED        // Abgeschlossen (inkl. Beschaffung + Wareneingang)
+  CANCELLED        // Storniert
 }
 
 enum DeliveryMethod {
@@ -233,6 +235,10 @@ model Order {
   technicianName  String?        // Name des zugewiesenen Technikers
   techDoneAt      DateTime?      // Techniker-Arbeit abgeschlossen
   procDoneAt      DateTime?      // Beschaffung abgeschlossen
+  commissionedAt  DateTime?      // Alle Artikel kommissioniert
+  commissionedBy  String?        // Wer hat kommissioniert
+  setupDoneAt     DateTime?      // Einrichtung abgeschlossen
+  setupDoneBy     String?        // Wer hat eingerichtet
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
