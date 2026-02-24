@@ -113,7 +113,7 @@ export function OrderPositions({ order }: { order: OrderDetailFull }) {
             Positionen / Kommissionierung ({order.items.length})
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="border-border/50 bg-muted/30 hover:bg-muted/30">

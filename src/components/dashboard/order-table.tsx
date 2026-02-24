@@ -59,7 +59,7 @@ export function DashboardOrderTable({ orders }: { orders: DashboardOrder[] }) {
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between gap-4">
+      <CardHeader className="flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <CardTitle>Offene Aufträge ({orders.length})</CardTitle>
         <div className="relative w-full max-w-xs">
           <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -77,16 +77,17 @@ export function DashboardOrderTable({ orders }: { orders: DashboardOrder[] }) {
             {search ? "Keine Ergebnisse gefunden." : "Keine offenen Aufträge vorhanden."}
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Auftragsnr.</TableHead>
                 <TableHead>Empfänger</TableHead>
-                <TableHead>Kostenstelle</TableHead>
+                <TableHead className="hidden sm:table-cell">Kostenstelle</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Positionen</TableHead>
-                <TableHead>Erstellt</TableHead>
-                <TableHead>Techniker</TableHead>
+                <TableHead className="hidden md:table-cell">Positionen</TableHead>
+                <TableHead className="hidden lg:table-cell">Erstellt</TableHead>
+                <TableHead className="hidden lg:table-cell">Techniker</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -101,7 +102,7 @@ export function DashboardOrderTable({ orders }: { orders: DashboardOrder[] }) {
                     </Link>
                   </TableCell>
                   <TableCell>{order.orderedFor}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <Badge variant="outline">{order.costCenter}</Badge>
                   </TableCell>
                   <TableCell>
@@ -114,19 +115,20 @@ export function DashboardOrderTable({ orders }: { orders: DashboardOrder[] }) {
                       {orderStatusLabels[order.computedStatus] ?? order.computedStatus}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="hidden md:table-cell text-muted-foreground">
                     {order.items.length + order.mobilfunk.length}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="hidden lg:table-cell text-muted-foreground">
                     {formatRelative(order.createdAt)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="hidden lg:table-cell text-muted-foreground">
                     {order.technicianName || "-"}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
       </CardContent>
     </Card>

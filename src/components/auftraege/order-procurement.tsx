@@ -199,7 +199,7 @@ export function OrderProcurement({ order }: { order: OrderDetailFull }) {
                     </div>
 
                     {!isOrdered && (
-                      <div className="flex items-end gap-2 shrink-0">
+                      <div className="flex flex-wrap items-end gap-2 shrink-0">
                         <div>
                           <Label className="text-[10px]">Lieferant</Label>
                           <Select
@@ -214,7 +214,7 @@ export function OrderProcurement({ order }: { order: OrderDetailFull }) {
                               }))
                             }
                           >
-                            <SelectTrigger className="w-40 h-8 text-xs">
+                            <SelectTrigger className="w-36 sm:w-40 h-8 text-xs">
                               <SelectValue placeholder="Lieferant..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -244,7 +244,7 @@ export function OrderProcurement({ order }: { order: OrderDetailFull }) {
                               }))
                             }
                             placeholder="Best.Nr..."
-                            className="w-32 h-8 text-xs"
+                            className="w-28 sm:w-32 h-8 text-xs"
                           />
                         </div>
                         <Button

@@ -73,7 +73,7 @@ export function OrderList({
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-border/50 bg-card shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-border/50 bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 bg-muted/30 hover:bg-muted/30">
@@ -84,19 +84,19 @@ export function OrderList({
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">
                 Empfänger
               </TableHead>
-              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">
+              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">
                 Kostenstelle
               </TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">
                 Status
               </TableHead>
-              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right">
+              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right hidden md:table-cell">
                 Positionen
               </TableHead>
-              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">
+              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">
                 Erstellt
               </TableHead>
-              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">
+              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">
                 Techniker
               </TableHead>
             </TableRow>
@@ -178,7 +178,7 @@ function OrderRow({
         </Link>
       </TableCell>
       <TableCell className="text-sm">{order.orderedFor}</TableCell>
-      <TableCell>
+      <TableCell className="hidden sm:table-cell">
         <Badge variant="outline" className="text-[10px] font-mono">
           {order.costCenter}
         </Badge>
@@ -192,7 +192,7 @@ function OrderRow({
           {orderStatusLabels[order.computedStatus]}
         </span>
       </TableCell>
-      <TableCell className="text-right tabular-nums text-sm">
+      <TableCell className="text-right tabular-nums text-sm hidden md:table-cell">
         <div className="flex items-center justify-end gap-1.5">
           {order.items.length}
           {order.mobilfunk.length > 0 && (
@@ -200,10 +200,10 @@ function OrderRow({
           )}
         </div>
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
+      <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
         {new Date(order.createdAt).toLocaleDateString("de-DE")}
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
+      <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
         {order.technicianName || "–"}
       </TableCell>
     </TableRow>

@@ -225,7 +225,7 @@ export function StockOverview({
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-border/50 bg-card shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-border/50 bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 bg-muted/30 hover:bg-muted/30">
@@ -233,10 +233,10 @@ export function StockOverview({
               <TableHead className="py-3">
                 <SortHeader label="Artikel" sortKeyName="name" />
               </TableHead>
-              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">
+              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">
                 SKU
               </TableHead>
-              <TableHead className="py-3">
+              <TableHead className="py-3 hidden md:table-cell">
                 <SortHeader label="Tier" sortKeyName="category" />
               </TableHead>
               <TableHead className="py-3 text-right">
@@ -246,10 +246,10 @@ export function StockOverview({
                   className="justify-end"
                 />
               </TableHead>
-              <TableHead className="py-3 text-right text-xs font-semibold uppercase tracking-wider">
+              <TableHead className="py-3 text-right text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">
                 Im Zulauf
               </TableHead>
-              <TableHead className="py-3 text-right text-xs font-semibold uppercase tracking-wider">
+              <TableHead className="py-3 text-right text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">
                 Min-Bestand
               </TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">
@@ -322,14 +322,14 @@ export function StockOverview({
                       </TableCell>
 
                       {/* SKU */}
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <span className="font-mono text-xs text-muted-foreground">
                           {article.sku}
                         </span>
                       </TableCell>
 
                       {/* Tier Badge */}
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <span
                           className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold ${tierBadgeColors[article.category] ?? ""}`}
                         >
@@ -350,7 +350,7 @@ export function StockOverview({
                       </TableCell>
 
                       {/* Im Zulauf */}
-                      <TableCell className="text-right">
+                      <TableCell className="text-right hidden lg:table-cell">
                         {article.incomingStock > 0 ? (
                           <span className="text-sm font-medium tabular-nums text-amber-500">
                             +{article.incomingStock}
@@ -363,7 +363,7 @@ export function StockOverview({
                       </TableCell>
 
                       {/* Min-Bestand */}
-                      <TableCell className="text-right">
+                      <TableCell className="text-right hidden lg:table-cell">
                         <span className="text-sm text-muted-foreground tabular-nums">
                           {article.minStockLevel > 0
                             ? article.minStockLevel
