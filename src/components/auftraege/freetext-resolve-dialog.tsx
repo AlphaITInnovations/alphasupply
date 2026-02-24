@@ -89,7 +89,7 @@ export function FreetextResolveDialog({
             <div className="py-8 text-center text-sm text-muted-foreground">
               <p>Kein passender Artikel gefunden.</p>
               <Button variant="outline" size="sm" className="mt-2" asChild>
-                <a href="/inventory?new=1" target="_blank">
+                <a href="/artikelverwaltung/neu" target="_blank">
                   <Plus className="mr-1 h-3 w-3" />
                   Neuen Artikel anlegen
                 </a>

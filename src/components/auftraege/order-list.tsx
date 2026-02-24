@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { StockLight } from "@/components/orders/stock-light";
+import { StockLight } from "@/components/auftraege/stock-light";
 import {
   orderStatusLabels,
   orderStatusColors,

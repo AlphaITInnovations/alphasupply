@@ -31,7 +31,7 @@ import { articleCategoryLabels } from "@/types/inventory";
 import { pickItem, unpickItem } from "@/actions/techniker";
 import { toast } from "sonner";
 import type { OrderDetailFull } from "./order-detail";
-import { FreetextResolveDialog } from "@/components/orders/freetext-resolve-dialog";
+import { FreetextResolveDialog } from "@/components/auftraege/freetext-resolve-dialog";
 
 const categoryColors: Record<string, string> = {
   HIGH_TIER:
