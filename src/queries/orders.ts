@@ -5,7 +5,7 @@ import { computeOrderStatus } from "@/types/orders";
 export async function getOrders(options?: {
   status?: string;
   search?: string;
-  filter?: "tech" | "proc";
+  filter?: "tech" | "proc" | "commission";
 }) {
   const { status, search, filter } = options ?? {};
 
@@ -50,6 +50,11 @@ export async function getOrders(options?: {
       stockAvailability: calculateStockAvailability(order.items),
     };
   });
+
+  if (filter === "commission") {
+    // Kommissionierung: orders in NEW or IN_COMMISSION state
+    return enriched.filter((o) => ["NEW", "IN_COMMISSION"].includes(o.computedStatus));
+  }
 
   if (filter === "tech") {
     // Techniker: only orders with green availability (all items in stock)

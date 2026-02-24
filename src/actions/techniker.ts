@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { syncOrderStatus } from "@/actions/orders";
+import { computeOrderStatus } from "@/types/orders";
 
 export async function setTechnicianName(orderId: string, name: string) {
   try {
@@ -237,6 +238,22 @@ export async function finishTechWork(data: {
   technicianName: string;
 }) {
   try {
+    // Validate that the order is in READY_TO_SHIP state before shipping
+    const order = await db.order.findUnique({
+      where: { id: data.orderId },
+      include: { items: true, mobilfunk: true },
+    });
+    if (!order) {
+      return { error: "Auftrag nicht gefunden." };
+    }
+
+    const computedStatus = computeOrderStatus(order);
+    if (computedStatus !== "READY_TO_SHIP") {
+      return {
+        error: `Auftrag kann nicht versendet werden. Aktueller Status: ${computedStatus}. Alle Positionen müssen kommissioniert und die Einrichtung abgeschlossen sein.`,
+      };
+    }
+
     await db.order.update({
       where: { id: data.orderId },
       data: {

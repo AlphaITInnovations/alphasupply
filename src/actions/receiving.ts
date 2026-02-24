@@ -14,6 +14,18 @@ export async function receiveOrderItem(data: {
 }) {
   try {
     await db.$transaction(async (tx) => {
+      // Check if order is cancelled
+      const order = await tx.order.findUniqueOrThrow({ where: { id: data.orderId } });
+      if (order.status === "CANCELLED") {
+        throw new Error("Wareneingang für stornierte Aufträge nicht möglich.");
+      }
+
+      // Check if item was already fully received
+      const existingItem = await tx.orderItem.findUniqueOrThrow({ where: { id: data.orderItemId } });
+      if (existingItem.receivedQty >= existingItem.quantity) {
+        throw new Error("Artikel wurde bereits vollständig empfangen.");
+      }
+
       // Update OrderItem receivedQty
       await tx.orderItem.update({
         where: { id: data.orderItemId },
@@ -83,10 +95,18 @@ export async function receiveFreeTextItem(data: {
   performedBy?: string;
 }) {
   try {
+    // Check if order is cancelled
+    const order = await db.order.findUniqueOrThrow({ where: { id: data.orderId } });
+    if (order.status === "CANCELLED") {
+      throw new Error("Wareneingang für stornierte Aufträge nicht möglich.");
+    }
+
+    // Fetch item to get actual quantity
+    const item = await db.orderItem.findUniqueOrThrow({ where: { id: data.orderItemId } });
     await db.orderItem.update({
       where: { id: data.orderItemId },
       data: {
-        receivedQty: 1,
+        receivedQty: item.quantity,
         receivedAt: new Date(),
       },
     });
@@ -106,6 +126,12 @@ export async function receiveMobilfunk(data: {
   orderId: string;
 }) {
   try {
+    // Check if order is cancelled
+    const order = await db.order.findUniqueOrThrow({ where: { id: data.orderId } });
+    if (order.status === "CANCELLED") {
+      throw new Error("Wareneingang für stornierte Aufträge nicht möglich.");
+    }
+
     await db.orderMobilfunk.update({
       where: { id: data.mobilfunkId },
       data: {

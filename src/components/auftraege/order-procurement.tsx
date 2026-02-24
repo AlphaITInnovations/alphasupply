@@ -67,7 +67,9 @@ export function OrderProcurement({ order }: { order: OrderDetailFull }) {
       return;
     }
     const data = itemData[item.id];
-    if (!data?.supplierId) {
+    const isFreeText = !item.article;
+    // Supplier is required for article items, optional for freeText items
+    if (!isFreeText && !data?.supplierId) {
       toast.error("Bitte Lieferant auswählen.");
       return;
     }
@@ -75,8 +77,8 @@ export function OrderProcurement({ order }: { order: OrderDetailFull }) {
       const result = await markItemOrdered({
         orderItemId: item.id,
         orderId: order.id,
-        supplierId: data.supplierId,
-        supplierOrderNo: data.orderNo,
+        supplierId: data?.supplierId || undefined,
+        supplierOrderNo: data?.orderNo || undefined,
         orderedBy: buyerName.trim(),
       });
       if (result.error) {
@@ -250,7 +252,7 @@ export function OrderProcurement({ order }: { order: OrderDetailFull }) {
                         <Button
                           size="sm"
                           onClick={() => handleOrderItem(item)}
-                          disabled={isPending || !data.supplierId}
+                          disabled={isPending || (!!item.article && !data.supplierId)}
                         >
                           <Check className="mr-1 h-3 w-3" />
                           Bestellt

@@ -7,16 +7,16 @@ import { syncOrderStatus } from "@/actions/orders";
 export async function markItemOrdered(data: {
   orderItemId: string;
   orderId: string;
-  supplierId: string;
-  supplierOrderNo: string;
+  supplierId?: string;
+  supplierOrderNo?: string;
   orderedBy: string;
 }) {
   try {
     await db.orderItem.update({
       where: { id: data.orderItemId },
       data: {
-        supplierId: data.supplierId,
-        supplierOrderNo: data.supplierOrderNo,
+        supplierId: data.supplierId || null,
+        supplierOrderNo: data.supplierOrderNo || null,
         orderedAt: new Date(),
         orderedBy: data.orderedBy,
       },

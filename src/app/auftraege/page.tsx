@@ -9,10 +9,8 @@ import { OrderFilters } from "@/components/auftraege/order-filters";
 
 // Map URL filter params to status values for the query
 const filterStatusMap: Record<string, string> = {
-  commission: "IN_COMMISSION",
   setup: "IN_SETUP",
   ready: "READY_TO_SHIP",
-  procurement: "NEW", // procurement is handled differently
 };
 
 export default async function AuftraegePage({
@@ -28,6 +26,8 @@ export default async function AuftraegePage({
   let orders;
   if (filter === "procurement") {
     orders = await getOrders({ filter: "proc", search });
+  } else if (filter === "commission") {
+    orders = await getOrders({ filter: "commission", search });
   } else if (filter && filterStatusMap[filter]) {
     orders = await getOrders({ status: filterStatusMap[filter], search });
   } else {

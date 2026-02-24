@@ -54,22 +54,55 @@ export const mobilfunkItemSchema = z.object({
 });
 
 export const createOrderSchema = z.object({
-  orderedBy: z.string().min(1, "Besteller ist erforderlich"),
-  orderedFor: z.string().min(1, "Empfänger ist erforderlich"),
-  costCenter: z.string().min(1, "Kostenstelle ist erforderlich"),
+  orderedBy: z.string().trim().min(1, "Besteller ist erforderlich").max(500),
+  orderedFor: z.string().trim().min(1, "Empfänger ist erforderlich").max(500),
+  costCenter: z.string().trim().min(1, "Kostenstelle ist erforderlich").max(500),
   deliveryMethod: z.enum(["SHIPPING", "PICKUP"]),
-  shippingCompany: z.string().optional(),
-  shippingStreet: z.string().optional(),
-  shippingZip: z.string().optional(),
-  shippingCity: z.string().optional(),
-  pickupBy: z.string().optional(),
-  notes: z.string().optional(),
+  shippingCompany: z.string().max(500).optional(),
+  shippingStreet: z.string().max(500).optional(),
+  shippingZip: z.string().max(500).optional(),
+  shippingCity: z.string().max(500).optional(),
+  pickupBy: z.string().max(500).optional(),
+  notes: z.string().max(5000).optional(),
   items: z.array(z.object({
     articleId: z.string().optional(),
     freeText: z.string().optional(),
-    quantity: z.number().int().min(1),
-  })),
+    quantity: z.number().int().min(1).max(10000),
+  })).min(1, "Mindestens eine Position erforderlich"),
   mobilfunk: z.array(mobilfunkItemSchema).optional(),
+}).superRefine((data, ctx) => {
+  if (data.deliveryMethod === "SHIPPING") {
+    if (!data.shippingStreet?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["shippingStreet"],
+        message: "Straße ist für Versand erforderlich",
+      });
+    }
+    if (!data.shippingZip?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["shippingZip"],
+        message: "PLZ ist für Versand erforderlich",
+      });
+    }
+    if (!data.shippingCity?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["shippingCity"],
+        message: "Stadt ist für Versand erforderlich",
+      });
+    }
+  }
+  if (data.deliveryMethod === "PICKUP") {
+    if (!data.pickupBy?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["pickupBy"],
+        message: "Abholer ist für Abholung erforderlich",
+      });
+    }
+  }
 });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
@@ -107,21 +140,36 @@ export function computeOrderStatus(order: OrderForStatus): string {
   const hasArticles = order.items.length > 0;
   const hasMobilfunk = order.mobilfunk.length > 0;
 
-  // Techniker-Stream
-  const allPicked = order.items.every((i) => i.pickedQty >= i.quantity);
-  const allMfSetup = order.mobilfunk.every((mf) => mf.setupDone);
+  // Techniker-Stream (guard against vacuous truth on empty arrays)
+  const allPicked = hasArticles
+    ? order.items.every((i) => i.pickedQty >= i.quantity)
+    : true;
+  const allMfSetup = hasMobilfunk
+    ? order.mobilfunk.every((mf) => mf.setupDone)
+    : true;
   const isShipped = !!order.trackingNumber || !!order.shippedAt;
 
   // Bestell-Stream
-  const needsOrdering = order.items.some((i) => i.needsOrdering) || hasMobilfunk;
   const orderableItems = order.items.filter((i) => i.needsOrdering);
-  const allOrdered = orderableItems.every((i) => i.orderedAt) &&
-    order.mobilfunk.every((mf) => mf.ordered);
+  const hasOrderableItems = orderableItems.length > 0;
+  const needsOrdering = hasOrderableItems || hasMobilfunk;
+  const allItemsOrdered = hasOrderableItems
+    ? orderableItems.every((i) => i.orderedAt)
+    : true;
+  const allMfOrdered = hasMobilfunk
+    ? order.mobilfunk.every((mf) => mf.ordered)
+    : true;
+  const allOrdered = allItemsOrdered && allMfOrdered;
   const procDone = !needsOrdering || allOrdered;
 
   // Wareneingang-Stream
-  const allReceived = orderableItems.every((i) => i.receivedQty >= i.quantity) &&
-    order.mobilfunk.every((mf) => !mf.ordered || mf.received);
+  const allItemsReceived = hasOrderableItems
+    ? orderableItems.every((i) => i.receivedQty >= i.quantity)
+    : true;
+  const allMfReceived = hasMobilfunk
+    ? order.mobilfunk.every((mf) => !mf.ordered || mf.received)
+    : true;
+  const allReceived = allItemsReceived && allMfReceived;
   const recvDone = !needsOrdering || allReceived;
 
   // COMPLETED: shipped AND all procurement + receiving done
