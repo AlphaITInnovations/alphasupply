@@ -446,6 +446,8 @@ function ManualStockInDialog({
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newCategory, setNewCategory] = useState<string>("MID_TIER");
+  const [newUnit, setNewUnit] = useState("Stk");
+  const [newMinStock, setNewMinStock] = useState(0);
   const [localArticles, setLocalArticles] = useState<ArticleOption[]>(initialArticles);
 
   const allArticles = localArticles;
@@ -481,6 +483,8 @@ function ManualStockInDialog({
     setShowCreateForm(false);
     setNewName("");
     setNewCategory("MID_TIER");
+    setNewUnit("Stk");
+    setNewMinStock(0);
     setLocalArticles(initialArticles);
   }
 
@@ -493,6 +497,8 @@ function ManualStockInDialog({
       const result = await quickCreateArticle({
         name: newName.trim(),
         category: newCategory as "HIGH_TIER" | "MID_TIER" | "LOW_TIER",
+        unit: newUnit || "Stk",
+        minStockLevel: newMinStock,
       });
       if (result.success) {
         toast.success(`Artikel "${result.article.name}" angelegt (${result.article.sku})`);
@@ -615,20 +621,40 @@ function ManualStockInDialog({
                   autoFocus
                 />
               </div>
-              <div>
-                <Label className="text-xs">Kategorie *</Label>
-                <Select value={newCategory} onValueChange={setNewCategory}>
-                  <SelectTrigger className="mt-1 h-8 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(articleCategoryLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value} className="text-sm">
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-1">
+                  <Label className="text-xs">Kategorie *</Label>
+                  <Select value={newCategory} onValueChange={setNewCategory}>
+                    <SelectTrigger className="mt-1 h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(articleCategoryLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value} className="text-sm">
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-1">
+                  <Label className="text-xs">Einheit</Label>
+                  <Input
+                    value={newUnit}
+                    onChange={(e) => setNewUnit(e.target.value)}
+                    className="mt-1 h-8 text-sm"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <Label className="text-xs">Min-Bestand</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={newMinStock}
+                    onChange={(e) => setNewMinStock(parseInt(e.target.value) || 0)}
+                    className="mt-1 h-8 text-sm"
+                  />
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -645,6 +671,8 @@ function ManualStockInDialog({
                     setShowCreateForm(false);
                     setNewName("");
                     setNewCategory("MID_TIER");
+                    setNewUnit("Stk");
+                    setNewMinStock(0);
                   }}
                 >
                   Abbrechen
