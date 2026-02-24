@@ -27,7 +27,7 @@ export default async function InventurPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Inventur</h1>
         <p className="text-muted-foreground">
-          Lagerbestände prüfen, Statistiken einsehen und Inventuren durchführen
+          Lagerwert einsehen und physischen Bestand mit dem System abgleichen
         </p>
       </div>
       <InventoryDashboard stats={stats} inventories={serializedInventories} />

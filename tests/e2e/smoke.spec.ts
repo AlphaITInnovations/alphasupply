@@ -83,8 +83,8 @@ test.describe("AlphaSupply Smoke Tests", () => {
   test("Inventur page loads with statistics", async ({ page }) => {
     await page.goto(`${BASE}/inventur`);
     await expect(page.getByRole("heading", { name: "Inventur" })).toBeVisible();
-    await expect(page.getByText("Artikel gesamt")).toBeVisible();
-    await expect(page.getByText("Lagerwert")).toBeVisible();
+    await expect(page.getByText("Lagerwert gesamt")).toBeVisible();
+    await expect(page.getByText("Digitaler Bestand")).toBeVisible();
   });
 
   test("Inventur - new inventory dialog opens", async ({ page }) => {

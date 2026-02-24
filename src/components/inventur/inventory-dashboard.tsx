@@ -7,11 +7,12 @@ import {
   Package,
   Euro,
   BarChart3,
-  AlertTriangle,
   Plus,
   ClipboardCheck,
   ArrowRight,
-  TrendingUp,
+  Search,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,27 +30,25 @@ import { startInventory } from "@/actions/inventur";
 import { articleCategoryLabels } from "@/types/inventory";
 import { toast } from "sonner";
 
+type ArticleValue = {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
+  currentStock: number;
+  unit: string;
+  avgPurchasePrice: number;
+  totalValue: number;
+};
+
 type Stats = {
   articleCount: number;
   totalStockUnits: number;
   warehouseValue: number;
+  articlesWithPrice: number;
+  articlesWithoutPrice: number;
   categoryStats: Record<string, { count: number; stock: number; value: number }>;
-  lowStockArticles: {
-    id: string;
-    name: string;
-    sku: string;
-    currentStock: number;
-    minStockLevel: number;
-  }[];
-  topValueArticles: {
-    id: string;
-    name: string;
-    sku: string;
-    currentStock: number;
-    totalValue: number;
-    avgPurchasePrice: number;
-    unit: string;
-  }[];
+  allArticlesWithValue: ArticleValue[];
 };
 
 type InventorySummary = {
@@ -76,10 +75,10 @@ const statusColors: Record<string, string> = {
   CANCELLED: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800",
 };
 
-const categoryColors: Record<string, string> = {
-  HIGH_TIER: "text-amber-600 dark:text-amber-400",
-  MID_TIER: "text-blue-600 dark:text-blue-400",
-  LOW_TIER: "text-emerald-600 dark:text-emerald-400",
+const categoryBadgeColors: Record<string, string> = {
+  HIGH_TIER: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
+  MID_TIER: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
+  LOW_TIER: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
 };
 
 function formatCurrency(value: number): string {
@@ -101,6 +100,8 @@ export function InventoryDashboard({
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [name, setName] = useState("");
   const [startedBy, setStartedBy] = useState("");
+  const [search, setSearch] = useState("");
+  const [showAllArticles, setShowAllArticles] = useState(false);
 
   function handleStart() {
     if (!name.trim() || !startedBy.trim()) return;
@@ -121,95 +122,91 @@ export function InventoryDashboard({
 
   const activeInventory = inventories.find((i) => i.status === "IN_PROGRESS");
 
+  // Filter articles for value list
+  const filteredArticles = search.trim()
+    ? stats.allArticlesWithValue.filter(
+        (a) =>
+          a.name.toLowerCase().includes(search.toLowerCase()) ||
+          a.sku.toLowerCase().includes(search.toLowerCase())
+      )
+    : stats.allArticlesWithValue;
+
+  const displayedArticles = showAllArticles
+    ? filteredArticles
+    : filteredArticles.slice(0, 15);
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Package className="h-5 w-5 text-primary" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Lagerwert - Hero Card */}
+        <Card className="sm:col-span-2 lg:col-span-1 border-primary/20">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10">
+                <Euro className="h-6 w-6 text-emerald-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Artikel gesamt</p>
-                <p className="text-2xl font-bold">{stats.articleCount}</p>
-                <p className="text-xs text-muted-foreground">
-                  {stats.totalStockUnits} Einheiten
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                  Lagerwert gesamt
                 </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                <Euro className="h-5 w-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Lagerwert</p>
-                <p className="text-2xl font-bold">
+                <p className="text-3xl font-bold tracking-tight">
                   {formatCurrency(stats.warehouseValue)}
                 </p>
-                <p className="text-xs text-muted-foreground">Netto-EK</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Netto-Einkaufswert · {stats.articlesWithPrice} Artikel bewertet
+                  {stats.articlesWithoutPrice > 0 && (
+                    <span className="text-amber-600 dark:text-amber-400">
+                      {" "}· {stats.articlesWithoutPrice} ohne Preis
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Bestand */}
         <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <Package className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Kategorien</p>
-                <div className="flex flex-col gap-0.5 mt-1">
-                  {Object.entries(stats.categoryStats).map(([cat, data]) => (
-                    <div key={cat} className="flex items-center gap-2">
-                      <span className={`text-xs font-medium ${categoryColors[cat] || ""}`}>
-                        {articleCategoryLabels[cat] || cat}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {data.count} ({data.stock} Stk)
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                  Digitaler Bestand
+                </p>
+                <p className="text-3xl font-bold">{stats.totalStockUnits}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Einheiten über {stats.articleCount} Artikel
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Wert nach Kategorie */}
         <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                stats.lowStockArticles.length > 0
-                  ? "bg-amber-500/10"
-                  : "bg-emerald-500/10"
-              }`}>
-                <AlertTriangle className={`h-5 w-5 ${
-                  stats.lowStockArticles.length > 0
-                    ? "text-amber-600"
-                    : "text-emerald-600"
-                }`} />
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
+                <BarChart3 className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">
-                  Unter Mindestbestand
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1.5">
+                  Wert nach Kategorie
                 </p>
-                <p className="text-2xl font-bold">
-                  {stats.lowStockArticles.length}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {stats.lowStockArticles.length === 0
-                    ? "Alles OK"
-                    : "Nachbestellung prüfen"}
-                </p>
+                {Object.entries(stats.categoryStats).map(([cat, data]) => (
+                  <div key={cat} className="flex items-center justify-between gap-3 leading-relaxed">
+                    <span className="text-xs font-medium">
+                      {articleCategoryLabels[cat] || cat}
+                    </span>
+                    <span className="text-xs font-semibold tabular-nums">
+                      {formatCurrency(data.value)}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>
@@ -217,9 +214,9 @@ export function InventoryDashboard({
       </div>
 
       {/* Action Row */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         {activeInventory ? (
-          <Button asChild>
+          <Button asChild size="lg">
             <Link href={`/inventur/${activeInventory.id}`}>
               <ClipboardCheck className="mr-2 h-4 w-4" />
               Laufende Inventur fortsetzen
@@ -227,95 +224,112 @@ export function InventoryDashboard({
             </Link>
           </Button>
         ) : (
-          <Button onClick={() => setShowNewDialog(true)}>
+          <Button onClick={() => setShowNewDialog(true)} size="lg">
             <Plus className="mr-2 h-4 w-4" />
             Neue Inventur starten
           </Button>
         )}
+        <p className="text-sm text-muted-foreground">
+          Physischen Bestand prüfen und mit dem digitalen Lager abgleichen
+        </p>
       </div>
 
-      {/* Two column: Top Value + Low Stock */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Top Value Articles */}
-        <Card>
-          <CardHeader className="pb-3">
+      {/* Artikelwerte - Full List */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="h-4 w-4" />
-              Wertintensivste Artikel
+              <Euro className="h-4 w-4" />
+              Lagerwert pro Artikel
             </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {stats.topValueArticles.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Keine Artikelpreise hinterlegt.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {stats.topValueArticles.map((a, i) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center gap-3 rounded-lg border px-3 py-2"
-                  >
-                    <span className="text-xs font-bold text-muted-foreground w-5">
-                      {i + 1}.
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{a.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {a.currentStock} {a.unit} × {formatCurrency(a.avgPurchasePrice)}
-                      </p>
-                    </div>
-                    <span className="text-sm font-semibold whitespace-nowrap">
-                      {formatCurrency(a.totalValue)}
-                    </span>
-                  </div>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Artikel suchen..."
+                className="pl-9 h-8 text-sm"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-xs text-muted-foreground">
+                  <th className="text-left pb-2 pr-4 font-medium">Artikel</th>
+                  <th className="text-left pb-2 pr-4 font-medium hidden sm:table-cell">SKU</th>
+                  <th className="text-left pb-2 pr-4 font-medium hidden md:table-cell">Kategorie</th>
+                  <th className="text-right pb-2 pr-4 font-medium">Bestand</th>
+                  <th className="text-right pb-2 pr-4 font-medium hidden sm:table-cell">EK-Preis</th>
+                  <th className="text-right pb-2 font-medium">Wert</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedArticles.map((a) => (
+                  <tr key={a.id} className="border-b border-border/50 hover:bg-muted/30">
+                    <td className="py-2 pr-4 font-medium">{a.name}</td>
+                    <td className="py-2 pr-4 font-mono text-xs text-muted-foreground hidden sm:table-cell">
+                      {a.sku}
+                    </td>
+                    <td className="py-2 pr-4 hidden md:table-cell">
+                      <Badge variant="outline" className={`text-[10px] ${categoryBadgeColors[a.category] || ""}`}>
+                        {articleCategoryLabels[a.category] || a.category}
+                      </Badge>
+                    </td>
+                    <td className="py-2 pr-4 text-right tabular-nums">
+                      {a.currentStock} {a.unit}
+                    </td>
+                    <td className="py-2 pr-4 text-right tabular-nums text-muted-foreground hidden sm:table-cell">
+                      {a.avgPurchasePrice > 0 ? formatCurrency(a.avgPurchasePrice) : "–"}
+                    </td>
+                    <td className="py-2 text-right tabular-nums font-semibold">
+                      {a.totalValue > 0 ? formatCurrency(a.totalValue) : "–"}
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Low Stock Alerts */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="h-4 w-4" />
-              Unter Mindestbestand
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {stats.lowStockArticles.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Alle Artikel über Mindestbestand.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {stats.lowStockArticles.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{a.name}</p>
-                      <p className="text-xs text-muted-foreground font-mono">
-                        {a.sku}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-                        {a.currentStock} / {a.minStockLevel}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Ist / Mindest
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                {/* Total row */}
+                <tr className="font-semibold border-t-2">
+                  <td className="pt-3 pr-4" colSpan={3}>
+                    <span className="hidden md:inline">Gesamt ({filteredArticles.length} Artikel)</span>
+                    <span className="md:hidden">Gesamt</span>
+                  </td>
+                  <td className="pt-3 pr-4 text-right tabular-nums">
+                    {filteredArticles.reduce((s, a) => s + a.currentStock, 0)}
+                  </td>
+                  <td className="pt-3 pr-4 hidden sm:table-cell" />
+                  <td className="pt-3 text-right tabular-nums">
+                    {formatCurrency(filteredArticles.reduce((s, a) => s + a.totalValue, 0))}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {!showAllArticles && filteredArticles.length > 15 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full mt-3"
+              onClick={() => setShowAllArticles(true)}
+            >
+              <ChevronDown className="mr-2 h-4 w-4" />
+              Alle {filteredArticles.length} Artikel anzeigen
+            </Button>
+          )}
+          {showAllArticles && filteredArticles.length > 15 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full mt-3"
+              onClick={() => setShowAllArticles(false)}
+            >
+              <ChevronUp className="mr-2 h-4 w-4" />
+              Weniger anzeigen
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Past Inventories */}
       {inventories.length > 0 && (
@@ -323,7 +337,7 @@ export function InventoryDashboard({
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <ClipboardCheck className="h-4 w-4" />
-              Inventuren
+              Durchgeführte Inventuren
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -345,21 +359,21 @@ export function InventoryDashboard({
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Gestartet von {inv.startedBy} am{" "}
+                      von {inv.startedBy} am{" "}
                       {new Date(inv.createdAt).toLocaleDateString("de-DE")}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold">
-                      {inv.checkedItems}/{inv.totalItems}
+                      {inv.checkedItems}/{inv.totalItems} geprüft
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {inv.deviations > 0
-                        ? `${inv.deviations} Abweichungen`
+                        ? `${inv.deviations} Abweichung${inv.deviations > 1 ? "en" : ""}`
                         : "Keine Abweichungen"}
                     </p>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 </Link>
               ))}
             </div>
@@ -373,8 +387,9 @@ export function InventoryDashboard({
           <DialogHeader>
             <DialogTitle>Neue Inventur starten</DialogTitle>
             <DialogDescription>
-              Alle aktiven Artikel werden in die Inventur aufgenommen.
-              Der aktuelle Bestand wird als Soll-Wert übernommen.
+              Physischen Lagerbestand mit dem digitalen System abgleichen.
+              Alle aktiven Artikel werden aufgenommen, der aktuelle Systembestand
+              wird als Soll-Wert gesetzt.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

@@ -9,17 +9,16 @@ export async function getInventoryStats() {
       sku: true,
       category: true,
       currentStock: true,
-      incomingStock: true,
-      minStockLevel: true,
       avgPurchasePrice: true,
       unit: true,
     },
   });
 
-  // Calculate total warehouse value
   let warehouseValue = 0;
   let articleCount = 0;
   let totalStockUnits = 0;
+  let articlesWithPrice = 0;
+  let articlesWithoutPrice = 0;
   const categoryStats: Record<string, { count: number; stock: number; value: number }> = {};
 
   for (const a of articles) {
@@ -29,6 +28,12 @@ export async function getInventoryStats() {
     const itemValue = a.currentStock * price;
     warehouseValue += itemValue;
 
+    if (price > 0 && a.currentStock > 0) {
+      articlesWithPrice++;
+    } else if (a.currentStock > 0 && price === 0) {
+      articlesWithoutPrice++;
+    }
+
     if (!categoryStats[a.category]) {
       categoryStats[a.category] = { count: 0, stock: 0, value: 0 };
     }
@@ -37,29 +42,28 @@ export async function getInventoryStats() {
     categoryStats[a.category].value += itemValue;
   }
 
-  // Low stock articles
-  const lowStockArticles = articles.filter(
-    (a) => a.minStockLevel > 0 && a.currentStock <= a.minStockLevel
-  );
-
-  // Top value articles
-  const topValueArticles = articles
+  // All articles with their value (for full list view)
+  const allArticlesWithValue = articles
     .map((a) => ({
-      ...a,
-      totalValue: a.currentStock * (a.avgPurchasePrice ? Number(a.avgPurchasePrice) : 0),
+      id: a.id,
+      name: a.name,
+      sku: a.sku,
+      category: a.category,
+      currentStock: a.currentStock,
+      unit: a.unit,
       avgPurchasePrice: a.avgPurchasePrice ? Number(a.avgPurchasePrice) : 0,
+      totalValue: a.currentStock * (a.avgPurchasePrice ? Number(a.avgPurchasePrice) : 0),
     }))
-    .filter((a) => a.totalValue > 0)
-    .sort((a, b) => b.totalValue - a.totalValue)
-    .slice(0, 10);
+    .sort((a, b) => b.totalValue - a.totalValue);
 
   return {
     articleCount,
     totalStockUnits,
     warehouseValue,
+    articlesWithPrice,
+    articlesWithoutPrice,
     categoryStats,
-    lowStockArticles,
-    topValueArticles,
+    allArticlesWithValue,
   };
 }
 
