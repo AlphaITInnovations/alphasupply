@@ -2,7 +2,6 @@
 
 import { Separator } from "@/components/ui/separator";
 import { OrderHeader } from "./order-header";
-import { OrderProgress } from "./order-progress";
 import { OrderPositions } from "./order-positions";
 import { OrderProcurement } from "./order-procurement";
 import { OrderShipping } from "./order-shipping";
@@ -15,17 +14,12 @@ export type OrderDetailFull = NonNullable<
 >;
 
 export function OrderDetail({ order }: { order: OrderDetailFull }) {
-  const isTerminal = ["COMPLETED", "CANCELLED"].includes(order.computedStatus);
-
   return (
     <div className="space-y-6">
-      {/* Header: Order number, status, info grid, technician */}
+      {/* Header: Order number, status, progress, info grid, technician */}
       <OrderHeader order={order} />
 
       <Separator />
-
-      {/* Progress stepper */}
-      {!isTerminal && <OrderProgress order={order} />}
 
       {/* Positions / Commissioning */}
       <OrderPositions order={order} />

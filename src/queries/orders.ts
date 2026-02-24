@@ -185,15 +185,15 @@ export async function getOrderDetailFull(id: string) {
 
 export async function getNextOrderNumber(): Promise<string> {
   const latest = await db.order.findFirst({
-    where: { orderNumber: { startsWith: "BES-" } },
+    where: { orderNumber: { startsWith: "AUFTRAG-" } },
     orderBy: { orderNumber: "desc" },
     select: { orderNumber: true },
   });
 
-  if (!latest) return "BES-001";
+  if (!latest) return "AUFTRAG-0001";
 
-  const num = parseInt(latest.orderNumber.replace("BES-", ""), 10);
-  return `BES-${String(num + 1).padStart(3, "0")}`;
+  const num = parseInt(latest.orderNumber.replace("AUFTRAG-", ""), 10);
+  return `AUFTRAG-${String(num + 1).padStart(4, "0")}`;
 }
 
 function calculateStockAvailability(
