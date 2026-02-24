@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Plus,
   Send,
   UserCheck,
   Smartphone,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,9 +31,7 @@ import {
   orderStatusColors,
   deliveryMethodLabels,
 } from "@/types/orders";
-import { fetchOrderDetail } from "@/actions/orders";
 import { OrderForm } from "@/components/orders/order-form";
-import { OrderDetailContent } from "@/components/orders/order-detail-content";
 import type { getOrders } from "@/queries/orders";
 
 type Article = {
@@ -46,7 +44,6 @@ type Article = {
 };
 
 type Order = Awaited<ReturnType<typeof getOrders>>[0];
-type OrderDetail = NonNullable<Awaited<ReturnType<typeof fetchOrderDetail>>>;
 
 export function OrderListClient({
   activeOrders,
@@ -58,23 +55,12 @@ export function OrderListClient({
   articles: Article[];
 }) {
   const router = useRouter();
-  const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-
-  async function handleOrderClick(id: string) {
-    setLoading(true);
-    setDetailOpen(true);
-    const detail = await fetchOrderDetail(id);
-    setSelectedOrder(detail);
-    setLoading(false);
-  }
 
   return (
     <>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Auftr&auml;ge</h1>
+        <h1 className="text-2xl font-bold">Aufträge</h1>
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Neuer Auftrag
@@ -89,7 +75,7 @@ export function OrderListClient({
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Nr.</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Status</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Besteller</TableHead>
-              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Empf&auml;nger</TableHead>
+              <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Empfänger</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Kostenstelle</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider">Lieferung</TableHead>
               <TableHead className="py-3 text-xs font-semibold uppercase tracking-wider text-right">Positionen</TableHead>
@@ -100,13 +86,13 @@ export function OrderListClient({
             {activeOrders.length === 0 && completedOrders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
-                  Keine Auftr&auml;ge vorhanden.
+                  Keine Aufträge vorhanden.
                 </TableCell>
               </TableRow>
             ) : (
               <>
                 {activeOrders.map((order) => (
-                  <OrderRow key={order.id} order={order} onClick={handleOrderClick} />
+                  <OrderRow key={order.id} order={order} />
                 ))}
                 {completedOrders.length > 0 && (
                   <>
@@ -118,7 +104,7 @@ export function OrderListClient({
                       </TableCell>
                     </TableRow>
                     {completedOrders.map((order) => (
-                      <OrderRow key={order.id} order={order} onClick={handleOrderClick} opacity />
+                      <OrderRow key={order.id} order={order} opacity />
                     ))}
                   </>
                 )}
@@ -127,23 +113,6 @@ export function OrderListClient({
           </TableBody>
         </Table>
       </div>
-
-      {/* Detail-Dialog */}
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : selectedOrder ? (
-            <OrderDetailContent order={selectedOrder} onClose={() => setDetailOpen(false)} />
-          ) : (
-            <div className="flex items-center justify-center h-64 text-muted-foreground">
-              Auftrag nicht gefunden.
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Neuer Auftrag Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -167,11 +136,9 @@ export function OrderListClient({
 
 function OrderRow({
   order,
-  onClick,
   opacity,
 }: {
   order: Order;
-  onClick: (id: string) => void;
   opacity?: boolean;
 }) {
   return (
@@ -180,13 +147,12 @@ function OrderRow({
         <StockLight availability={order.stockAvailability} size={opacity ? "sm" : undefined} />
       </TableCell>
       <TableCell>
-        <button
-          type="button"
-          onClick={() => onClick(order.id)}
-          className={`font-mono text-xs text-primary hover:underline cursor-pointer ${opacity ? "" : "font-semibold"}`}
+        <Link
+          href={`/orders/${order.id}`}
+          className={`font-mono text-xs text-primary hover:underline ${opacity ? "" : "font-semibold"}`}
         >
           {order.orderNumber}
-        </button>
+        </Link>
       </TableCell>
       <TableCell>
         <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold ${orderStatusColors[order.computedStatus]}`}>

@@ -17,11 +17,22 @@ function formatRelative(date: Date): string {
   return `vor ${days} Tagen`;
 }
 
-export function PipelineCard({ order }: { order: PipelineOrder }) {
+const hoverCta: Record<string, string> = {
+  tech: "Einrichten",
+  proc: "Bestellen",
+  recv: "Empfangen",
+};
+
+export function PipelineCard({ order, tab }: { order: PipelineOrder; tab?: string }) {
+  const href = tab
+    ? `/orders/${order.id}?tab=${tab}`
+    : `/orders/${order.id}`;
+  const cta = tab ? hoverCta[tab] : undefined;
+
   return (
     <Link
-      href={`/orders/${order.id}`}
-      className="group block rounded-lg border border-border/50 bg-card p-3 transition-all hover:border-border hover:shadow-sm"
+      href={href}
+      className="group block rounded-lg border border-border/50 bg-card p-3 transition-all duration-200 hover:border-border hover:shadow-md hover:-translate-y-0.5"
     >
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-sm font-bold">{order.orderNumber}</span>
@@ -35,7 +46,16 @@ export function PipelineCard({ order }: { order: PipelineOrder }) {
         <span>&middot;</span>
         <span>{order.itemCount} Pos.</span>
         {order.mobilfunkCount > 0 && <Smartphone className="h-3 w-3" />}
-        <span className="ml-auto">{formatRelative(order.createdAt)}</span>
+        <span className="ml-auto">
+          {cta ? (
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-primary font-medium">
+              {cta} &rarr;
+            </span>
+          ) : null}
+          <span className={cta ? "group-hover:hidden" : ""}>
+            {formatRelative(order.createdAt)}
+          </span>
+        </span>
       </div>
     </Link>
   );

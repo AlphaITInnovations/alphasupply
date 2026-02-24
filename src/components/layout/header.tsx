@@ -4,13 +4,13 @@ import { usePathname } from "next/navigation";
 import { ThemeToggle } from "./theme-toggle";
 
 const pageConfig: Record<string, { title: string; description: string }> = {
-  "/": { title: "Dashboard", description: "Übersicht und Kennzahlen" },
+  "/": { title: "Pipeline", description: "Übersicht und Kennzahlen" },
   "/inventory/stock": { title: "Lager", description: "Aktuelle Bestände und Seriennummern" },
   "/inventory/receiving": { title: "Wareneingang", description: "Ware einbuchen und Seriennummern erfassen" },
   "/inventory": { title: "Artikelliste", description: "Alle Artikel verwalten" },
   "/inventory/suppliers": { title: "Lieferanten", description: "Lieferantenstammdaten verwalten" },
   "/orders/new": { title: "Neuer Auftrag", description: "Auftrag manuell anlegen" },
-  "/orders": { title: "Auftragswesen", description: "Aufträge verwalten und verfolgen" },
+  "/orders": { title: "Aufträge", description: "Aufträge verwalten und verfolgen" },
   "/techniker": { title: "Techniker", description: "Aufträge bearbeiten und Artikel entnehmen" },
   "/procurement": { title: "Bestellwesen", description: "Nachbestellungen verwalten" },
   "/mobilfunk": { title: "Mobilfunk", description: "Eingerichtete Geräte im Umlauf" },

@@ -6,11 +6,13 @@ export function PipelineColumn({
   count,
   orders,
   completedCount,
+  tab,
 }: {
   title: string;
   count: number;
   orders?: PipelineOrder[];
   completedCount?: number;
+  tab?: string;
 }) {
   return (
     <div className="flex min-w-[180px] flex-1 flex-col">
@@ -22,7 +24,7 @@ export function PipelineColumn({
       </div>
       <div className="flex-1 space-y-2">
         {orders?.map((order) => (
-          <PipelineCard key={order.id} order={order} />
+          <PipelineCard key={order.id} order={order} tab={tab} />
         ))}
         {completedCount !== undefined && (
           <div className="flex items-center justify-center rounded-lg border border-dashed border-border/50 p-8 text-center">

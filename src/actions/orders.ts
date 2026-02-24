@@ -141,6 +141,26 @@ export async function fetchOrderDetail(id: string) {
   return getOrderById(id);
 }
 
+export async function resolveFreetextItem(orderItemId: string, articleId: string) {
+  try {
+    const item = await db.orderItem.findUnique({ where: { id: orderItemId } });
+    if (!item) return { error: "Position nicht gefunden." };
+    if (item.articleId) return { error: "Position hat bereits einen Artikel." };
+
+    await db.orderItem.update({
+      where: { id: orderItemId },
+      data: { articleId, freeText: null },
+    });
+
+    revalidatePath("/orders");
+    revalidatePath(`/orders/${item.orderId}`);
+    revalidatePath("/");
+    return { success: true };
+  } catch {
+    return { error: "Fehler beim Zuweisen des Artikels." };
+  }
+}
+
 export async function cancelOrder(id: string) {
   const order = await db.order.findUnique({
     where: { id },

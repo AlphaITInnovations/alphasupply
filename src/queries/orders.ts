@@ -5,8 +5,9 @@ import { computeOrderStatus } from "@/types/orders";
 export async function getOrders(options?: {
   status?: string;
   search?: string;
+  filter?: "tech" | "proc";
 }) {
-  const { status, search } = options ?? {};
+  const { status, search, filter } = options ?? {};
 
   const orders = await db.order.findMany({
     where: {
@@ -41,7 +42,7 @@ export async function getOrders(options?: {
     orderBy: { createdAt: "desc" },
   });
 
-  return orders.map((order) => {
+  const enriched = orders.map((order) => {
     const computed = computeOrderStatus(order);
     return {
       ...order,
@@ -49,6 +50,22 @@ export async function getOrders(options?: {
       stockAvailability: calculateStockAvailability(order.items),
     };
   });
+
+  if (filter === "tech") {
+    // Techniker: only orders with green availability (all items in stock)
+    return enriched.filter((o) => o.stockAvailability === "green" && !["COMPLETED", "CANCELLED"].includes(o.computedStatus));
+  }
+
+  if (filter === "proc") {
+    // Beschaffung: orders that have items needing ordering
+    return enriched.filter((o) => {
+      const needsOrdering = o.items.some((item) => item.article && !item.orderedAt);
+      const needsMobilfunkOrdering = (o.mobilfunk ?? []).some((m: { ordered: boolean }) => !m.ordered);
+      return (needsOrdering || needsMobilfunkOrdering) && !["COMPLETED", "CANCELLED"].includes(o.computedStatus);
+    });
+  }
+
+  return enriched;
 }
 
 export async function getOrderById(id: string) {
@@ -96,6 +113,73 @@ export async function getOrderById(id: string) {
     ...order,
     computedStatus: computed,
     stockAvailability: calculateStockAvailability(order.items),
+  };
+}
+
+export async function getOrderDetailFull(id: string) {
+  const [order, suppliers, allArticles] = await Promise.all([
+    db.order.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            article: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+                category: true,
+                currentStock: true,
+                incomingStock: true,
+                unit: true,
+                productGroup: true,
+                productSubGroup: true,
+                serialNumbers: {
+                  where: { status: "IN_STOCK" },
+                  select: { id: true, serialNo: true, isUsed: true },
+                  orderBy: { serialNo: "asc" },
+                },
+                articleSuppliers: {
+                  where: { isPreferred: true },
+                  include: {
+                    supplier: { select: { id: true, name: true } },
+                  },
+                  take: 1,
+                },
+              },
+            },
+            supplier: {
+              select: { id: true, name: true },
+            },
+            serialNumbers: {
+              select: { id: true, serialNo: true },
+            },
+          },
+        },
+        mobilfunk: true,
+      },
+    }),
+    db.supplier.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    db.article.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, sku: true, category: true },
+    }),
+  ]);
+
+  if (!order) return null;
+
+  const computed = computeOrderStatus(order);
+  return {
+    ...order,
+    computedStatus: computed,
+    stockAvailability: calculateStockAvailability(order.items),
+    suppliers,
+    allArticles,
   };
 }
 

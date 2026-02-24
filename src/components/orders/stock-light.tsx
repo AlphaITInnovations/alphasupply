@@ -33,7 +33,7 @@ export function StockLight({
   return (
     <div className="flex items-center gap-2">
       <span
-        className={`inline-block rounded-full ${c.color} ${c.glow} ${sizeClass}`}
+        className={`inline-block rounded-full ${c.color} ${c.glow} ${sizeClass} ${availability === "red" ? "animate-stock-pulse" : ""}`}
         title={c.label}
       />
       {showLabel && (

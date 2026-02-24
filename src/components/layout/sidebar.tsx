@@ -9,13 +9,8 @@ import {
   Warehouse,
   Factory,
   ListOrdered,
-  PackagePlus,
   Menu,
   X,
-  Wrench,
-  ShoppingCart,
-  Smartphone,
-  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,36 +18,17 @@ import { useState } from "react";
 
 type NavItem = {
   name: string;
-  href?: string;
-  icon?: React.ElementType;
-  items?: { name: string; href: string; icon: React.ElementType; disabled?: boolean }[];
+  href: string;
+  icon: React.ElementType;
+  dividerBefore?: boolean;
 };
 
 const navigation: NavItem[] = [
-  {
-    name: "Dashboard",
-    href: "/",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Aufträge",
-    items: [
-      { name: "Auftragswesen", href: "/orders", icon: ClipboardList },
-      { name: "Techniker", href: "/techniker", icon: Wrench },
-      { name: "Bestellwesen", href: "/procurement", icon: ShoppingCart },
-      { name: "Wareneingang", href: "/inventory/receiving", icon: PackagePlus },
-      { name: "Mobilfunk", href: "/mobilfunk", icon: Smartphone },
-    ],
-  },
-  {
-    name: "Lager",
-    items: [
-      { name: "Lager", href: "/inventory/stock", icon: Warehouse },
-      { name: "Artikelliste", href: "/inventory", icon: ListOrdered },
-      { name: "Lieferanten", href: "/inventory/suppliers", icon: Factory },
-      { name: "Inventur", href: "/inventur", icon: ClipboardCheck, disabled: true },
-    ],
-  },
+  { name: "Pipeline", href: "/", icon: LayoutDashboard },
+  { name: "Aufträge", href: "/orders", icon: ClipboardList },
+  { name: "Lager", href: "/inventory/stock", icon: Warehouse, dividerBefore: true },
+  { name: "Artikelliste", href: "/inventory", icon: ListOrdered },
+  { name: "Lieferanten", href: "/inventory/suppliers", icon: Factory },
 ];
 
 export function Sidebar() {
@@ -105,90 +81,44 @@ export function Sidebar() {
         <div className="mx-4 h-px bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
           {navigation.map((item) => {
-            if ("items" in item && item.items) {
-              return (
-                <div key={item.name} className="mb-2">
-                  <p className="mb-1.5 px-3 pt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/40">
-                    {item.name}
-                  </p>
-                  <div className="space-y-0.5">
-                    {item.items.map((subItem) => {
-                      if (subItem.disabled) {
-                        return (
-                          <div
-                            key={subItem.href}
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-sidebar-foreground/25 cursor-not-allowed"
-                          >
-                            <subItem.icon className="h-[18px] w-[18px]" />
-                            {subItem.name}
-                            <span className="ml-auto rounded-md bg-white/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/30">
-                              Bald
-                            </span>
-                          </div>
-                        );
-                      }
-
-                      const knownSubPaths = ["/inventory/stock", "/inventory/receiving", "/inventory/movements", "/inventory/suppliers", "/inventory/locations"];
-                      const isActive =
-                        subItem.href === "/inventory"
-                          ? pathname === "/inventory" ||
-                            (pathname.startsWith("/inventory/") &&
-                              !knownSubPaths.some((p) => pathname.startsWith(p)))
-                          : pathname === subItem.href || pathname.startsWith(subItem.href + "/");
-                      return (
-                        <Link
-                          key={subItem.href}
-                          href={subItem.href}
-                          onClick={() => setMobileOpen(false)}
-                          className={cn(
-                            "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
-                            isActive
-                              ? "bg-white/10 text-white shadow-sm"
-                              : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-white"
-                          )}
-                        >
-                          {isActive && (
-                            <span className="absolute left-0 h-6 w-1 rounded-r-full bg-petrol-light shadow-[0_0_8px_var(--color-petrol-light)]" />
-                          )}
-                          <subItem.icon className={cn(
-                            "h-[18px] w-[18px] transition-colors",
-                            isActive ? "text-petrol-light" : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70"
-                          )} />
-                          {subItem.name}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            }
-
-            const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href!);
-            const Icon = item.icon!;
+            const knownSubPaths = ["/inventory/stock", "/inventory/receiving", "/inventory/movements", "/inventory/suppliers", "/inventory/locations"];
+            const isActive =
+              item.href === "/"
+                ? pathname === "/"
+                : item.href === "/inventory"
+                  ? pathname === "/inventory" ||
+                    (pathname.startsWith("/inventory/") &&
+                      !knownSubPaths.some((p) => pathname.startsWith(p)))
+                  : pathname === item.href || pathname.startsWith(item.href + "/");
+            const Icon = item.icon;
 
             return (
-              <Link
-                key={item.name}
-                href={item.href!}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
-                  isActive
-                    ? "bg-white/10 text-white shadow-sm"
-                    : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-white"
+              <div key={item.name}>
+                {item.dividerBefore && (
+                  <div className="mx-1 my-2 h-px bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />
                 )}
-              >
-                {isActive && (
-                  <span className="absolute left-0 h-6 w-1 rounded-r-full bg-petrol-light shadow-[0_0_8px_var(--color-petrol-light)]" />
-                )}
-                <Icon className={cn(
-                  "h-[18px] w-[18px] transition-colors",
-                  isActive ? "text-petrol-light" : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70"
-                )} />
-                {item.name}
-              </Link>
+                <Link
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
+                    isActive
+                      ? "bg-white/10 text-white shadow-sm"
+                      : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-white"
+                  )}
+                >
+                  {isActive && (
+                    <span className="absolute left-0 h-6 w-1 rounded-r-full bg-petrol-light shadow-[0_0_8px_var(--color-petrol-light)]" />
+                  )}
+                  <Icon className={cn(
+                    "h-[18px] w-[18px] transition-colors",
+                    isActive ? "text-petrol-light" : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70"
+                  )} />
+                  {item.name}
+                </Link>
+              </div>
             );
           })}
         </nav>

@@ -76,7 +76,7 @@ export function OrderDetailContent({
   function handleCancel() {
     startTransition(async () => {
       const result = await cancelOrder(order.id);
-      if (result.success) {
+      if ("success" in result) {
         toast.success("Auftrag storniert");
         onClose();
         router.refresh();

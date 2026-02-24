@@ -21,16 +21,19 @@ export default async function DashboardPage() {
           title="Einrichten"
           count={pipeline.einrichten.length}
           orders={pipeline.einrichten}
+          tab="tech"
         />
         <PipelineColumn
           title="Bestellen"
           count={pipeline.bestellen.length}
           orders={pipeline.bestellen}
+          tab="proc"
         />
         <PipelineColumn
           title="Wareneingang"
           count={pipeline.wareneingang.length}
           orders={pipeline.wareneingang}
+          tab="recv"
         />
         <PipelineColumn
           title="Versandbereit"
