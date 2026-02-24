@@ -4,8 +4,15 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { User, Building2, Calendar, Wrench, Ban } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { TEAM_MEMBERS } from "@/lib/team-members";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,13 +35,7 @@ export function OrderHeader({ order }: { order: OrderDetailFull }) {
   const [techName, setTechName] = useState(order.technicianName || "");
   const [isPending, startTransition] = useTransition();
 
-  function saveTechName() {
-    if (techName.trim() === (order.technicianName || "")) return;
-    startTransition(async () => {
-      await setTechnicianName(order.id, techName.trim());
-      router.refresh();
-    });
-  }
+  // saveTechName is now handled inline in Select onValueChange
 
   function handleCancel() {
     startTransition(async () => {
@@ -174,14 +175,28 @@ export function OrderHeader({ order }: { order: OrderDetailFull }) {
               <p className="text-[11px] text-muted-foreground mb-1">
                 Techniker
               </p>
-              <Input
-                value={techName}
-                onChange={(e) => setTechName(e.target.value)}
-                onBlur={saveTechName}
-                placeholder="Technikername eingeben..."
-                className="h-8 max-w-xs"
+              <Select
+                value={techName || undefined}
+                onValueChange={(value) => {
+                  setTechName(value);
+                  startTransition(async () => {
+                    await setTechnicianName(order.id, value);
+                    router.refresh();
+                  });
+                }}
                 disabled={isPending}
-              />
+              >
+                <SelectTrigger className="h-8 max-w-xs">
+                  <SelectValue placeholder="Techniker zuweisen..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEAM_MEMBERS.map((name) => (
+                    <SelectItem key={name} value={name} className="text-sm">
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>

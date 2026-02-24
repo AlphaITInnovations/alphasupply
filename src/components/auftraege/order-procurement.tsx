@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { mobilfunkTypeLabels } from "@/types/orders";
 import { markItemOrdered, markMobilfunkOrdered } from "@/actions/procurement";
+import { TEAM_MEMBERS } from "@/lib/team-members";
 import { toast } from "sonner";
 import type { OrderDetailFull } from "./order-detail";
 
@@ -123,12 +124,21 @@ export function OrderProcurement({ order }: { order: OrderDetailFull }) {
         {/* Buyer name */}
         <div className="max-w-sm">
           <Label className="text-xs text-muted-foreground">Besteller</Label>
-          <Input
-            value={buyerName}
-            onChange={(e) => setBuyerName(e.target.value)}
-            placeholder="Wer bestellt?..."
-            className="mt-1"
-          />
+          <Select
+            value={buyerName || undefined}
+            onValueChange={(value) => setBuyerName(value)}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Wer bestellt?..." />
+            </SelectTrigger>
+            <SelectContent>
+              {TEAM_MEMBERS.map((name) => (
+                <SelectItem key={name} value={name} className="text-sm">
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Orderable items */}

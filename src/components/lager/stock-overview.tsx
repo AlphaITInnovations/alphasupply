@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useState, useMemo } from "react";
+import { Fragment, useState, useMemo, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -11,9 +12,28 @@ import {
   Hash,
   Search,
   Package,
+  Plus,
+  PackageCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -26,6 +46,8 @@ import {
   articleCategoryLabels,
   serialNumberStatusLabels,
 } from "@/types/inventory";
+import { receiveGoods } from "@/actions/inventory";
+import { toast } from "sonner";
 
 type SerialNumberInfo = {
   id: string;
@@ -43,6 +65,14 @@ type StockArticle = {
   incomingStock: number;
   minStockLevel: number;
   serialNumbers: SerialNumberInfo[];
+};
+
+type ArticleOption = {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
+  unit: string;
 };
 
 type SortKey = "name" | "currentStock" | "category";
@@ -66,11 +96,14 @@ const snStatusDotColors: Record<string, string> = {
   DISPOSED: "bg-slate-400",
 };
 
-type FilterCategory = "ALL" | "HIGH_TIER" | "MID_TIER" | "LOW_TIER";
-
-export function StockOverview({ articles }: { articles: StockArticle[] }) {
+export function StockOverview({
+  articles,
+  allArticles,
+}: {
+  articles: StockArticle[];
+  allArticles: ArticleOption[];
+}) {
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterCategory>("ALL");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -99,11 +132,6 @@ export function StockOverview({ articles }: { articles: StockArticle[] }) {
   const filtered = useMemo(() => {
     let result = articles;
 
-    // Filter by category
-    if (filter !== "ALL") {
-      result = result.filter((a) => a.category === filter);
-    }
-
     // Filter by search
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -130,16 +158,9 @@ export function StockOverview({ articles }: { articles: StockArticle[] }) {
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [articles, filter, search, sortKey, sortDir]);
+  }, [articles, search, sortKey, sortDir]);
 
   const totalStock = filtered.reduce((sum, a) => sum + a.currentStock, 0);
-
-  const filterPills: { value: FilterCategory; label: string }[] = [
-    { value: "ALL", label: "Alle" },
-    { value: "HIGH_TIER", label: "High-Tier" },
-    { value: "MID_TIER", label: "Mid-Tier" },
-    { value: "LOW_TIER", label: "Low-Tier" },
-  ];
 
   const SortHeader = ({
     label,
@@ -179,7 +200,7 @@ export function StockOverview({ articles }: { articles: StockArticle[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Search + Filters */}
+      {/* Search + Manual Stock-In */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -190,21 +211,7 @@ export function StockOverview({ articles }: { articles: StockArticle[] }) {
             className="pl-9"
           />
         </div>
-        <div className="flex gap-1.5">
-          {filterPills.map((pill) => (
-            <button
-              key={pill.value}
-              onClick={() => setFilter(pill.value)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                filter === pill.value
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              {pill.label}
-            </button>
-          ))}
-        </div>
+        <ManualStockInDialog allArticles={allArticles} />
       </div>
 
       {/* Summary */}
@@ -262,7 +269,7 @@ export function StockOverview({ articles }: { articles: StockArticle[] }) {
                       Keine Artikel gefunden
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Passen Sie die Suche oder Filter an.
+                      Passen Sie die Suche an.
                     </p>
                   </div>
                 </TableCell>
@@ -417,6 +424,205 @@ export function StockOverview({ articles }: { articles: StockArticle[] }) {
         </Table>
       </div>
     </div>
+  );
+}
+
+/** Manual stock-in dialog for adding stock without an order */
+function ManualStockInDialog({
+  allArticles,
+}: {
+  allArticles: ArticleOption[];
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [selectedArticleId, setSelectedArticleId] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [reason, setReason] = useState("");
+  const [serialNumbers, setSerialNumbers] = useState<
+    { serialNo: string; isUsed: boolean }[]
+  >([]);
+
+  const selectedArticle = allArticles.find((a) => a.id === selectedArticleId);
+  const isHighTier = selectedArticle?.category === "HIGH_TIER";
+
+  function handleArticleChange(articleId: string) {
+    setSelectedArticleId(articleId);
+    const article = allArticles.find((a) => a.id === articleId);
+    if (article?.category === "HIGH_TIER") {
+      setSerialNumbers(
+        Array.from({ length: quantity }, () => ({ serialNo: "", isUsed: false }))
+      );
+    } else {
+      setSerialNumbers([]);
+    }
+  }
+
+  function handleQuantityChange(qty: number) {
+    const newQty = Math.max(1, qty);
+    setQuantity(newQty);
+    if (isHighTier) {
+      setSerialNumbers(
+        Array.from({ length: newQty }, (_, i) => serialNumbers[i] || { serialNo: "", isUsed: false })
+      );
+    }
+  }
+
+  function resetForm() {
+    setSelectedArticleId("");
+    setQuantity(1);
+    setReason("");
+    setSerialNumbers([]);
+  }
+
+  function handleSubmit() {
+    if (!selectedArticleId) {
+      toast.error("Bitte Artikel auswählen.");
+      return;
+    }
+    if (isHighTier && serialNumbers.some((sn) => !sn.serialNo.trim())) {
+      toast.error("Bitte alle Seriennummern ausfüllen.");
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await receiveGoods({
+        articleId: selectedArticleId,
+        quantity,
+        reason: reason || "Manueller Wareneingang",
+        serialNumbers: isHighTier ? serialNumbers : undefined,
+      });
+      if (result.success) {
+        toast.success(`${selectedArticle?.name} eingebucht (${quantity} ${selectedArticle?.unit || "Stk"})`);
+        setOpen(false);
+        resetForm();
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Fehler beim Einbuchen.");
+      }
+    });
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) resetForm();
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button size="sm">
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          Manuell einbuchen
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <PackageCheck className="h-4 w-4" />
+            Manueller Wareneingang
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Article selection */}
+          <div>
+            <Label className="text-xs">Artikel *</Label>
+            <Select value={selectedArticleId || undefined} onValueChange={handleArticleChange}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Artikel auswählen..." />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {allArticles.map((a) => (
+                  <SelectItem key={a.id} value={a.id} className="text-sm">
+                    <span className="font-mono text-[10px] text-muted-foreground mr-2">
+                      {a.sku}
+                    </span>
+                    {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Quantity */}
+          <div>
+            <Label className="text-xs">Menge *</Label>
+            <Input
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
+              className="mt-1 w-24"
+            />
+          </div>
+
+          {/* Reason */}
+          <div>
+            <Label className="text-xs">Grund (optional)</Label>
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="z.B. Nachlieferung, Retoure..."
+              className="mt-1"
+            />
+          </div>
+
+          {/* Serial numbers for HIGH_TIER */}
+          {isHighTier && serialNumbers.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Seriennummern
+              </Label>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {serialNumbers.map((sn, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 rounded-lg border border-border/50 bg-card px-3 py-2"
+                  >
+                    <span className="text-xs text-muted-foreground tabular-nums w-5 shrink-0">
+                      {index + 1}.
+                    </span>
+                    <Input
+                      placeholder="Seriennummer..."
+                      value={sn.serialNo}
+                      onChange={(e) => {
+                        const updated = [...serialNumbers];
+                        updated[index] = { ...updated[index], serialNo: e.target.value };
+                        setSerialNumbers(updated);
+                      }}
+                      className="h-8 text-sm font-mono"
+                    />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Switch
+                        checked={sn.isUsed}
+                        onCheckedChange={(checked) => {
+                          const updated = [...serialNumbers];
+                          updated[index] = { ...updated[index], isUsed: checked };
+                          setSerialNumbers(updated);
+                        }}
+                      />
+                      <span className="text-[10px] text-muted-foreground w-12">
+                        {sn.isUsed ? "Gebraucht" : "Neu"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Button
+            onClick={handleSubmit}
+            disabled={isPending || !selectedArticleId}
+            className="w-full"
+          >
+            {isPending ? "Wird eingebucht..." : "Einbuchen"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

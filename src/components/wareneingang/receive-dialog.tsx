@@ -60,7 +60,7 @@ export function ReceiveDialog({ item }: { item: ReceiveItem }) {
     if (isHighTier) {
       const emptySerials = serialNumbers.some((sn) => !sn.serialNo.trim());
       if (emptySerials) {
-        toast.error("Bitte alle Seriennummern ausfuellen.");
+        toast.error("Bitte alle Seriennummern ausfüllen.");
         return;
       }
       const duplicates = serialNumbers.filter(
@@ -68,7 +68,7 @@ export function ReceiveDialog({ item }: { item: ReceiveItem }) {
           arr.findIndex((s) => s.serialNo.trim() === sn.serialNo.trim()) !== i
       );
       if (duplicates.length > 0) {
-        toast.error("Seriennummern muessen eindeutig sein.");
+        toast.error("Seriennummern müssen eindeutig sein.");
         return;
       }
     }
@@ -178,7 +178,7 @@ export function ReceiveDialog({ item }: { item: ReceiveItem }) {
                 <span className="font-bold text-foreground text-lg tabular-nums">
                   {remaining}
                 </span>{" "}
-                Stueck werden eingelagert
+                Stück werden eingelagert
               </p>
             </div>
           )}
@@ -198,7 +198,7 @@ export function ReceiveDialog({ item }: { item: ReceiveItem }) {
             disabled={isPending}
             className="w-full"
           >
-            {isPending ? "Wird eingelagert..." : "Wareneingang bestaetigen"}
+            {isPending ? "Wird eingelagert..." : "Wareneingang bestätigen"}
           </Button>
         </div>
       </DialogContent>

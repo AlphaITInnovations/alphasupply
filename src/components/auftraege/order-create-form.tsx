@@ -216,7 +216,7 @@ export function OrderCreateForm({ articles }: { articles: Article[] }) {
 
       if (result.success && result.order) {
         toast.success(`Auftrag ${result.order.orderNumber} erstellt`);
-        router.push(`/auftraege/${result.order.id}`);
+        router.push("/auftraege");
       } else {
         toast.error(result.error ?? "Fehler beim Erstellen.");
       }
