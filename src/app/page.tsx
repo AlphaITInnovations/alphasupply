@@ -1,63 +1,27 @@
 export const dynamic = "force-dynamic";
 
-import { getPipelineOrders } from "@/queries/inventory";
-import { PipelineColumn } from "@/components/dashboard/pipeline-column";
-import { LowStockStrip } from "@/components/dashboard/low-stock-strip";
-import { PageHeader } from "@/components/layout/page-header";
+import { getDashboardData } from "@/queries/dashboard";
+import { ActionCards } from "@/components/dashboard/action-cards";
+import { DashboardOrderTable } from "@/components/dashboard/order-table";
+import { LowStockAlert } from "@/components/dashboard/low-stock-alert";
 
 export default async function DashboardPage() {
-  const { pipeline, completedCount, lowStockArticles } =
-    await getPipelineOrders();
+  const { orders, counts, lowStockArticles } = await getDashboardData();
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="Pipeline" description="Auftrags-Pipeline im Überblick" />
-
-      {/* Kanban Pipeline */}
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        <PipelineColumn
-          title="Neu"
-          count={pipeline.neu.length}
-          orders={pipeline.neu}
-          color="slate"
-        />
-        <PipelineColumn
-          title="Einrichten"
-          count={pipeline.einrichten.length}
-          orders={pipeline.einrichten}
-          tab="tech"
-          color="blue"
-        />
-        <PipelineColumn
-          title="Bestellen"
-          count={pipeline.bestellen.length}
-          orders={pipeline.bestellen}
-          tab="proc"
-          color="amber"
-        />
-        <PipelineColumn
-          title="Wareneingang"
-          count={pipeline.wareneingang.length}
-          orders={pipeline.wareneingang}
-          tab="recv"
-          color="emerald"
-        />
-        <PipelineColumn
-          title="Versandbereit"
-          count={pipeline.versandbereit.length}
-          orders={pipeline.versandbereit}
-          color="indigo"
-        />
-        <PipelineColumn
-          title="Erledigt"
-          count={completedCount}
-          completedCount={completedCount}
-          color="gray"
-        />
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">Übersicht aller offenen Aufgaben</p>
       </div>
 
-      {/* Low Stock Warning Strip */}
-      <LowStockStrip articles={lowStockArticles} />
+      <ActionCards counts={counts} />
+
+      <DashboardOrderTable orders={orders} />
+
+      {lowStockArticles.length > 0 && (
+        <LowStockAlert articles={lowStockArticles} />
+      )}
     </div>
   );
 }
