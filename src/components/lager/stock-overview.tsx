@@ -14,6 +14,7 @@ import {
   Package,
   Plus,
   PackageCheck,
+  Layers,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ type StockArticle = {
   name: string;
   sku: string;
   category: string;
+  productGroup: string;
   unit: string;
   currentStock: number;
   incomingStock: number;
@@ -107,6 +109,8 @@ export function StockOverview({
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [groupByCategory, setGroupByCategory] = useState(true);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -162,6 +166,39 @@ export function StockOverview({
 
   const totalStock = filtered.reduce((sum, a) => sum + a.currentStock, 0);
 
+  // Group articles by productGroup
+  const grouped = useMemo(() => {
+    if (!groupByCategory) return null;
+    const groups: { name: string; articles: typeof filtered; totalStock: number }[] = [];
+    const map = new Map<string, typeof filtered>();
+    for (const a of filtered) {
+      const key = a.productGroup || "Sonstige";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(a);
+    }
+    for (const [name, arts] of map) {
+      groups.push({
+        name,
+        articles: arts,
+        totalStock: arts.reduce((s, a) => s + a.currentStock, 0),
+      });
+    }
+    groups.sort((a, b) => a.name.localeCompare(b.name, "de"));
+    return groups;
+  }, [filtered, groupByCategory]);
+
+  function toggleGroup(groupName: string) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupName)) {
+        next.delete(groupName);
+      } else {
+        next.add(groupName);
+      }
+      return next;
+    });
+  }
+
   const SortHeader = ({
     label,
     sortKeyName,
@@ -200,16 +237,27 @@ export function StockOverview({
 
   return (
     <div className="space-y-4">
-      {/* Search + Manual Stock-In */}
+      {/* Search + Group Toggle + Manual Stock-In */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Artikel suchen..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+        <div className="flex items-center gap-3">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Artikel suchen..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Button
+            variant={groupByCategory ? "default" : "outline"}
+            size="sm"
+            onClick={() => setGroupByCategory(!groupByCategory)}
+            className="shrink-0"
+          >
+            <Layers className="mr-1.5 h-3.5 w-3.5" />
+            Gruppiert
+          </Button>
         </div>
         <ManualStockInDialog allArticles={allArticles} />
       </div>
@@ -274,156 +322,196 @@ export function StockOverview({
                   </div>
                 </TableCell>
               </TableRow>
-            ) : (
-              filtered.map((article) => {
-                const hasSerialnumbers =
-                  article.category === "HIGH_TIER" &&
-                  article.serialNumbers.length > 0;
-                const isExpanded = expandedRows.has(article.id);
-                const stockStatus = getStockStatus(
-                  article.currentStock,
-                  article.minStockLevel
-                );
-
-                return (
-                  <Fragment key={article.id}>
-                    <TableRow
-                      className={`border-border/30 transition-colors duration-150 ${
-                        hasSerialnumbers ? "cursor-pointer" : ""
-                      } ${isExpanded ? "bg-muted/20" : ""}`}
-                      onClick={
-                        hasSerialnumbers
-                          ? () => toggleExpand(article.id)
-                          : undefined
-                      }
-                    >
-                      {/* Expand chevron */}
-                      <TableCell className="w-10 px-3">
-                        {hasSerialnumbers && (
-                          <div className="flex h-5 w-5 items-center justify-center rounded">
-                            {isExpanded ? (
-                              <ChevronDown className="h-4 w-4 text-primary" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
-
-                      {/* Artikel name */}
-                      <TableCell>
-                        <Link
-                          href={`/artikelverwaltung/${article.id}`}
-                          className="text-sm font-medium hover:text-primary transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {article.name}
-                        </Link>
-                      </TableCell>
-
-                      {/* SKU */}
-                      <TableCell className="hidden sm:table-cell">
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {article.sku}
-                        </span>
-                      </TableCell>
-
-                      {/* Tier Badge */}
-                      <TableCell className="hidden md:table-cell">
-                        <span
-                          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold ${tierBadgeColors[article.category] ?? ""}`}
-                        >
-                          {articleCategoryLabels[article.category]}
-                        </span>
-                      </TableCell>
-
-                      {/* Bestand */}
-                      <TableCell className="text-right">
-                        <span
-                          className={`text-sm font-bold tabular-nums ${stockColor(article.currentStock, article.minStockLevel)}`}
-                        >
-                          {article.currentStock}
-                          <span className="ml-1 text-[10px] font-normal text-muted-foreground">
-                            {article.unit}
-                          </span>
-                        </span>
-                      </TableCell>
-
-                      {/* Im Zulauf */}
-                      <TableCell className="text-right hidden lg:table-cell">
-                        {article.incomingStock > 0 ? (
-                          <span className="text-sm font-medium tabular-nums text-amber-500">
-                            +{article.incomingStock}
-                          </span>
+            ) : groupByCategory && grouped ? (
+              grouped.map((group) => (
+                <Fragment key={group.name}>
+                  {/* Group header row */}
+                  <TableRow
+                    className="bg-muted/40 hover:bg-muted/50 cursor-pointer border-border/50"
+                    onClick={() => toggleGroup(group.name)}
+                  >
+                    <TableCell className="w-10 px-3">
+                      <div className="flex h-5 w-5 items-center justify-center">
+                        {collapsedGroups.has(group.name) ? (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         ) : (
-                          <span className="text-sm text-muted-foreground/40 tabular-nums">
-                            &ndash;
-                          </span>
+                          <ChevronDown className="h-4 w-4 text-primary" />
                         )}
-                      </TableCell>
-
-                      {/* Min-Bestand */}
-                      <TableCell className="text-right hidden lg:table-cell">
-                        <span className="text-sm text-muted-foreground tabular-nums">
-                          {article.minStockLevel > 0
-                            ? article.minStockLevel
-                            : "\u2013"}
+                      </div>
+                    </TableCell>
+                    <TableCell colSpan={5}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold">{group.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {group.articles.length} {group.articles.length === 1 ? "Artikel" : "Artikel"}
                         </span>
-                      </TableCell>
-
-                      {/* Status */}
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] ${stockStatus.className}`}
-                        >
-                          {stockStatus.label}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-
-                    {/* Expanded serial numbers */}
-                    {hasSerialnumbers && isExpanded && (
-                      <TableRow className="bg-muted/20 hover:bg-muted/20 border-border/30">
-                        <TableCell />
-                        <TableCell colSpan={7} className="py-3 pr-6">
-                          <div className="space-y-2.5">
-                            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
-                              <Hash className="h-3 w-3" />
-                              Seriennummern ({article.serialNumbers.length})
-                            </p>
-                            <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                              {article.serialNumbers.map((sn) => (
-                                <div
-                                  key={sn.id}
-                                  className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-card px-3 py-2 transition-colors hover:border-border"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <div
-                                      className={`h-1.5 w-1.5 rounded-full ${snStatusDotColors[sn.status] ?? "bg-gray-400"}`}
-                                    />
-                                    <span className="font-mono text-xs font-medium">
-                                      {sn.serialNo}
-                                    </span>
-                                  </div>
-                                  <span className="text-[10px] font-medium text-muted-foreground">
-                                    {serialNumberStatusLabels[sn.status]}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </Fragment>
-                );
-              })
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right hidden lg:table-cell" />
+                    <TableCell>
+                      <span className="text-sm font-bold tabular-nums">
+                        {group.totalStock} <span className="text-[10px] font-normal text-muted-foreground">Stk</span>
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                  {/* Articles in this group */}
+                  {!collapsedGroups.has(group.name) &&
+                    group.articles.map((article) => (
+                      <ArticleRow
+                        key={article.id}
+                        article={article}
+                        expandedRows={expandedRows}
+                        toggleExpand={toggleExpand}
+                        stockColor={stockColor}
+                      />
+                    ))}
+                </Fragment>
+              ))
+            ) : (
+              filtered.map((article) => (
+                <ArticleRow
+                  key={article.id}
+                  article={article}
+                  expandedRows={expandedRows}
+                  toggleExpand={toggleExpand}
+                  stockColor={stockColor}
+                />
+              ))
             )}
           </TableBody>
         </Table>
       </div>
     </div>
+  );
+}
+
+/** Single article row with optional serial number expansion */
+function ArticleRow({
+  article,
+  expandedRows,
+  toggleExpand,
+  stockColor,
+}: {
+  article: StockArticle;
+  expandedRows: Set<string>;
+  toggleExpand: (id: string) => void;
+  stockColor: (current: number, min: number) => string;
+}) {
+  const hasSerialnumbers =
+    article.category === "HIGH_TIER" && article.serialNumbers.length > 0;
+  const isExpanded = expandedRows.has(article.id);
+  const stockStatus = getStockStatus(article.currentStock, article.minStockLevel);
+
+  return (
+    <Fragment>
+      <TableRow
+        className={`border-border/30 transition-colors duration-150 ${
+          hasSerialnumbers ? "cursor-pointer" : ""
+        } ${isExpanded ? "bg-muted/20" : ""}`}
+        onClick={hasSerialnumbers ? () => toggleExpand(article.id) : undefined}
+      >
+        <TableCell className="w-10 px-3">
+          {hasSerialnumbers && (
+            <div className="flex h-5 w-5 items-center justify-center rounded">
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4 text-primary" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+          )}
+        </TableCell>
+        <TableCell>
+          <Link
+            href={`/artikelverwaltung/${article.id}`}
+            className="text-sm font-medium hover:text-primary transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {article.name}
+          </Link>
+        </TableCell>
+        <TableCell className="hidden sm:table-cell">
+          <span className="font-mono text-xs text-muted-foreground">
+            {article.sku}
+          </span>
+        </TableCell>
+        <TableCell className="hidden md:table-cell">
+          <span
+            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold ${tierBadgeColors[article.category] ?? ""}`}
+          >
+            {articleCategoryLabels[article.category]}
+          </span>
+        </TableCell>
+        <TableCell className="text-right">
+          <span
+            className={`text-sm font-bold tabular-nums ${stockColor(article.currentStock, article.minStockLevel)}`}
+          >
+            {article.currentStock}
+            <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+              {article.unit}
+            </span>
+          </span>
+        </TableCell>
+        <TableCell className="text-right hidden lg:table-cell">
+          {article.incomingStock > 0 ? (
+            <span className="text-sm font-medium tabular-nums text-amber-500">
+              +{article.incomingStock}
+            </span>
+          ) : (
+            <span className="text-sm text-muted-foreground/40 tabular-nums">
+              &ndash;
+            </span>
+          )}
+        </TableCell>
+        <TableCell className="text-right hidden lg:table-cell">
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {article.minStockLevel > 0 ? article.minStockLevel : "\u2013"}
+          </span>
+        </TableCell>
+        <TableCell>
+          <Badge
+            variant="outline"
+            className={`text-[10px] ${stockStatus.className}`}
+          >
+            {stockStatus.label}
+          </Badge>
+        </TableCell>
+      </TableRow>
+
+      {hasSerialnumbers && isExpanded && (
+        <TableRow className="bg-muted/20 hover:bg-muted/20 border-border/30">
+          <TableCell />
+          <TableCell colSpan={7} className="py-3 pr-6">
+            <div className="space-y-2.5">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                <Hash className="h-3 w-3" />
+                Seriennummern ({article.serialNumbers.length})
+              </p>
+              <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                {article.serialNumbers.map((sn) => (
+                  <div
+                    key={sn.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-card px-3 py-2 transition-colors hover:border-border"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`h-1.5 w-1.5 rounded-full ${snStatusDotColors[sn.status] ?? "bg-gray-400"}`}
+                      />
+                      <span className="font-mono text-xs font-medium">
+                        {sn.serialNo}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-medium text-muted-foreground">
+                      {serialNumberStatusLabels[sn.status]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </Fragment>
   );
 }
 

@@ -33,6 +33,7 @@ export default async function LagerPage() {
     name: a.name,
     sku: a.sku,
     category: a.category,
+    productGroup: a.productGroup ?? "",
     unit: a.unit,
     currentStock: a.currentStock,
     incomingStock: a.incomingStock,
