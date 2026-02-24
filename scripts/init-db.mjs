@@ -298,9 +298,9 @@ async function runMigrations(client) {
   // Migration 13: New seed articles (LC-421 Value Pack, HP G5 Dock, Logitech Brio 100)
   // Uses dynamic SKU assignment to avoid conflicts with app-created articles
   const newSeedArticles = [
-    { id: 'art-brother-lc421vp', name: 'Brother LC-421 Value Pack', desc: 'Tintenpatronen-Set (BK/C/M/Y) fuer DCP-J1800DW', category: 'CONSUMABLE', group: 'Verbrauchsmaterial', sub: 'Tinte', price: 30.00, unit: 'Set', min: 2 },
-    { id: 'art-hp-usbc-g5-dock', name: 'HP USB-C G5 Essential Dock', desc: 'USB-C Dockingstation EMEA', category: 'SERIALIZED', group: 'Dockingstation', sub: 'USB-C', price: 99.00, unit: 'Stk', min: 1 },
-    { id: 'art-logitech-brio100', name: 'Logitech Brio 100', desc: 'Full HD Webcam 2 Mpx USB', category: 'SERIALIZED', group: 'Peripherie', sub: 'Webcam', price: 33.00, unit: 'Stk', min: 2 },
+    { id: 'art-brother-lc421vp', name: 'Brother LC-421 Value Pack', desc: 'Tintenpatronen-Set (BK/C/M/Y) fuer DCP-J1800DW', category: 'LOW_TIER', group: 'Verbrauchsmaterial', sub: 'Tinte', price: 30.00, unit: 'Set', min: 2 },
+    { id: 'art-hp-usbc-g5-dock', name: 'HP USB-C G5 Essential Dock', desc: 'USB-C Dockingstation EMEA', category: 'HIGH_TIER', group: 'Dockingstation', sub: 'USB-C', price: 99.00, unit: 'Stk', min: 1 },
+    { id: 'art-logitech-brio100', name: 'Logitech Brio 100', desc: 'Full HD Webcam 2 Mpx USB', category: 'HIGH_TIER', group: 'Peripherie', sub: 'Webcam', price: 33.00, unit: 'Stk', min: 2 },
   ];
 
   // Get next available SKU number
@@ -343,6 +343,62 @@ async function runMigrations(client) {
     }
   }
   console.log("Migration 13: Seed articles checked.");
+
+  // Migration 14: Tier system rename + Order status expansion
+  // Rename ArticleCategory enum values: SERIALIZED→HIGH_TIER, STANDARD→MID_TIER, CONSUMABLE→LOW_TIER
+  const hasOldCategory = await client.query(
+    `SELECT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'SERIALIZED' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'ArticleCategory'))`
+  );
+  if (hasOldCategory.rows[0].exists) {
+    await client.query(`ALTER TYPE "ArticleCategory" RENAME VALUE 'SERIALIZED' TO 'HIGH_TIER'`);
+    await client.query(`ALTER TYPE "ArticleCategory" RENAME VALUE 'STANDARD' TO 'MID_TIER'`);
+    await client.query(`ALTER TYPE "ArticleCategory" RENAME VALUE 'CONSUMABLE' TO 'LOW_TIER'`);
+    console.log("Migration 14: Renamed ArticleCategory to tier system.");
+  }
+
+  // Rename/add OrderStatus values
+  const hasInProgress = await client.query(
+    `SELECT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'IN_PROGRESS' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'OrderStatus'))`
+  );
+  if (hasInProgress.rows[0].exists) {
+    await client.query(`ALTER TYPE "OrderStatus" RENAME VALUE 'IN_PROGRESS' TO 'IN_COMMISSION'`);
+    console.log("Migration 14: Renamed IN_PROGRESS to IN_COMMISSION.");
+  }
+  const hasReady = await client.query(
+    `SELECT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'READY' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'OrderStatus'))`
+  );
+  if (hasReady.rows[0].exists) {
+    await client.query(`ALTER TYPE "OrderStatus" RENAME VALUE 'READY' TO 'READY_TO_SHIP'`);
+    console.log("Migration 14: Renamed READY to READY_TO_SHIP.");
+  }
+
+  // Add new enum values if missing
+  const hasInSetup = await client.query(
+    `SELECT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'IN_SETUP' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'OrderStatus'))`
+  );
+  if (!hasInSetup.rows[0].exists) {
+    await client.query(`ALTER TYPE "OrderStatus" ADD VALUE IF NOT EXISTS 'IN_SETUP'`);
+    console.log("Migration 14: Added IN_SETUP status.");
+  }
+  const hasShipped = await client.query(
+    `SELECT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'SHIPPED' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'OrderStatus'))`
+  );
+  if (!hasShipped.rows[0].exists) {
+    await client.query(`ALTER TYPE "OrderStatus" ADD VALUE IF NOT EXISTS 'SHIPPED'`);
+    console.log("Migration 14: Added SHIPPED status.");
+  }
+
+  // Add new Order columns
+  const hasCommissionedAt = await client.query(
+    `SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'Order' AND column_name = 'commissionedAt')`
+  );
+  if (!hasCommissionedAt.rows[0].exists) {
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "commissionedAt" TIMESTAMP(3)`);
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "commissionedBy" TEXT`);
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "setupDoneAt" TIMESTAMP(3)`);
+    await client.query(`ALTER TABLE "Order" ADD COLUMN "setupDoneBy" TEXT`);
+    console.log("Migration 14: Added commission/setup columns to Order.");
+  }
 }
 
 main().catch((err) => {

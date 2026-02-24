@@ -2,7 +2,7 @@
 -- This runs automatically on first PostgreSQL initialization
 
 -- CreateEnum
-CREATE TYPE "ArticleCategory" AS ENUM ('SERIALIZED', 'STANDARD', 'CONSUMABLE');
+CREATE TYPE "ArticleCategory" AS ENUM ('HIGH_TIER', 'MID_TIER', 'LOW_TIER');
 
 -- CreateEnum
 CREATE TYPE "StockMovementType" AS ENUM ('IN', 'OUT', 'ADJUSTMENT');
@@ -143,7 +143,7 @@ CREATE INDEX "ArticleSupplier_supplierId_idx" ON "ArticleSupplier"("supplierId")
 CREATE UNIQUE INDEX "ArticleSupplier_articleId_supplierId_key" ON "ArticleSupplier"("articleId", "supplierId");
 
 -- CreateEnum
-CREATE TYPE "OrderStatus" AS ENUM ('NEW', 'IN_PROGRESS', 'READY', 'COMPLETED', 'CANCELLED');
+CREATE TYPE "OrderStatus" AS ENUM ('NEW', 'IN_COMMISSION', 'IN_SETUP', 'READY_TO_SHIP', 'SHIPPED', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "DeliveryMethod" AS ENUM ('SHIPPING', 'PICKUP');
@@ -178,6 +178,10 @@ CREATE TABLE "Order" (
     "technicianName" TEXT,
     "techDoneAt" TIMESTAMP(3),
     "procDoneAt" TIMESTAMP(3),
+    "commissionedAt" TIMESTAMP(3),
+    "commissionedBy" TEXT,
+    "setupDoneAt" TIMESTAMP(3),
+    "setupDoneBy" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -271,19 +275,19 @@ ON CONFLICT DO NOTHING;
 
 -- Seed: Testartikel
 INSERT INTO "Article" ("id", "name", "description", "sku", "category", "productGroup", "productSubGroup", "avgPurchasePrice", "unit", "minStockLevel", "currentStock", "imageUrl", "isActive", "notes", "createdAt", "updatedAt") VALUES
-  ('art-jabra-ev2-65', 'Jabra Evolve2 65', 'Bluetooth-Headset mit ANC', 'ART-001', 'SERIALIZED', 'Headset', 'Bluetooth', 126.04, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-lenovo-t210', 'Lenovo T210 Tasche', '15.6 Zoll Laptop-Tasche', 'ART-002', 'STANDARD', 'Zubehör', 'Taschen', 21.00, 'Stk', 3, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-dell-km5221w', 'Dell KM5221W', 'Wireless Tastatur-Maus-Set', 'ART-003', 'STANDARD', 'Peripherie', 'Tastatur-Maus', 37.81, 'Stk', 5, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-yealink-t54w', 'Yealink SIP-T54W', 'IP-Telefon Schwarz 10 Zeilen LCD WLAN', 'ART-004', 'SERIALIZED', 'Telefon', 'IP-Telefon', 104.12, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-lenovo-neo50q', 'Lenovo ThinkCentre neo 50q Gen 4', 'Intel Core i5-13420H 16 GB DDR4 512 GB SSD Win11 Pro Mini-PC', 'ART-005', 'SERIALIZED', 'PC', 'Mini-PC', 416.01, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-lenovo-tb14-g7', 'Lenovo ThinkBook 14 G7 ARP', 'AMD Ryzen 5 7535HS 14" WUXGA 16 GB DDR5 512 GB SSD Win11 Pro', 'ART-006', 'SERIALIZED', 'Notebook', '14 Zoll', 503.68, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-lenovo-tb16-g7', 'Lenovo ThinkBook 16 G7 ARP', 'AMD Ryzen 5 7535HS 16" WUXGA 16 GB DDR5 512 GB SSD Win11 Pro', 'ART-007', 'SERIALIZED', 'Notebook', '16 Zoll', 507.19, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-iiyama-xub2792', 'iiyama ProLite XUB2792HSU-W6', '27" Full HD IPS Monitor 1920x1080 weiss', 'ART-008', 'SERIALIZED', 'Monitor', '27 Zoll', 99.45, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-brother-j1800dw', 'Brother DCP-J1800DW', 'Tintenstrahl-Multifunktionsdrucker A4 WLAN', 'ART-009', 'SERIALIZED', 'Drucker', 'Tintenstrahl', 167.65, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-lenovo-usbc-dock', 'Lenovo ThinkPad Universal USB-C Dock', 'USB-C Dockingstation 40AY0090EU', 'ART-010', 'SERIALIZED', 'Dockingstation', 'USB-C', 103.99, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
-  ('art-brother-lc421vp', 'Brother LC-421 Value Pack', 'Tintenpatronen-Set (BK/C/M/Y) fuer DCP-J1800DW', 'ART-011', 'CONSUMABLE', 'Verbrauchsmaterial', 'Tinte', 30.00, 'Set', 2, 0, NULL, true, NULL, NOW(), NOW()),
-  ('art-hp-usbc-g5-dock', 'HP USB-C G5 Essential Dock', 'USB-C Dockingstation EMEA', 'ART-012', 'SERIALIZED', 'Dockingstation', 'USB-C', 99.00, 'Stk', 1, 0, NULL, true, NULL, NOW(), NOW()),
-  ('art-logitech-brio100', 'Logitech Brio 100', 'Full HD Webcam 2 Mpx USB', 'ART-013', 'SERIALIZED', 'Peripherie', 'Webcam', 33.00, 'Stk', 2, 0, NULL, true, NULL, NOW(), NOW())
+  ('art-jabra-ev2-65', 'Jabra Evolve2 65', 'Bluetooth-Headset mit ANC', 'ART-001', 'HIGH_TIER', 'Headset', 'Bluetooth', 126.04, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-lenovo-t210', 'Lenovo T210 Tasche', '15.6 Zoll Laptop-Tasche', 'ART-002', 'MID_TIER', 'Zubehör', 'Taschen', 21.00, 'Stk', 3, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-dell-km5221w', 'Dell KM5221W', 'Wireless Tastatur-Maus-Set', 'ART-003', 'MID_TIER', 'Peripherie', 'Tastatur-Maus', 37.81, 'Stk', 5, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-yealink-t54w', 'Yealink SIP-T54W', 'IP-Telefon Schwarz 10 Zeilen LCD WLAN', 'ART-004', 'HIGH_TIER', 'Telefon', 'IP-Telefon', 104.12, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-lenovo-neo50q', 'Lenovo ThinkCentre neo 50q Gen 4', 'Intel Core i5-13420H 16 GB DDR4 512 GB SSD Win11 Pro Mini-PC', 'ART-005', 'HIGH_TIER', 'PC', 'Mini-PC', 416.01, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-lenovo-tb14-g7', 'Lenovo ThinkBook 14 G7 ARP', 'AMD Ryzen 5 7535HS 14" WUXGA 16 GB DDR5 512 GB SSD Win11 Pro', 'ART-006', 'HIGH_TIER', 'Notebook', '14 Zoll', 503.68, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-lenovo-tb16-g7', 'Lenovo ThinkBook 16 G7 ARP', 'AMD Ryzen 5 7535HS 16" WUXGA 16 GB DDR5 512 GB SSD Win11 Pro', 'ART-007', 'HIGH_TIER', 'Notebook', '16 Zoll', 507.19, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-iiyama-xub2792', 'iiyama ProLite XUB2792HSU-W6', '27" Full HD IPS Monitor 1920x1080 weiss', 'ART-008', 'HIGH_TIER', 'Monitor', '27 Zoll', 99.45, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-brother-j1800dw', 'Brother DCP-J1800DW', 'Tintenstrahl-Multifunktionsdrucker A4 WLAN', 'ART-009', 'HIGH_TIER', 'Drucker', 'Tintenstrahl', 167.65, 'Stk', 1, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-lenovo-usbc-dock', 'Lenovo ThinkPad Universal USB-C Dock', 'USB-C Dockingstation 40AY0090EU', 'ART-010', 'HIGH_TIER', 'Dockingstation', 'USB-C', 103.99, 'Stk', 2, 1, NULL, true, NULL, NOW(), NOW()),
+  ('art-brother-lc421vp', 'Brother LC-421 Value Pack', 'Tintenpatronen-Set (BK/C/M/Y) fuer DCP-J1800DW', 'ART-011', 'LOW_TIER', 'Verbrauchsmaterial', 'Tinte', 30.00, 'Set', 2, 0, NULL, true, NULL, NOW(), NOW()),
+  ('art-hp-usbc-g5-dock', 'HP USB-C G5 Essential Dock', 'USB-C Dockingstation EMEA', 'ART-012', 'HIGH_TIER', 'Dockingstation', 'USB-C', 99.00, 'Stk', 1, 0, NULL, true, NULL, NOW(), NOW()),
+  ('art-logitech-brio100', 'Logitech Brio 100', 'Full HD Webcam 2 Mpx USB', 'ART-013', 'HIGH_TIER', 'Peripherie', 'Webcam', 33.00, 'Stk', 2, 0, NULL, true, NULL, NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- Seed: Seriennummern (nur SERIALIZED Artikel)
