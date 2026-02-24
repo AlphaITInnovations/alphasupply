@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -46,8 +46,6 @@ type OrderItemEntry =
 
 type MobilfunkEntry = MobilfunkItemInput & { _key: number };
 
-let mfKeyCounter = 0;
-
 const categoryColors: Record<string, string> = {
   HIGH_TIER:
     "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
@@ -84,6 +82,7 @@ export function OrderCreateForm({ articles }: { articles: Article[] }) {
   // Section 4: Mobilfunk
   const [mobilfunkItems, setMobilfunkItems] = useState<MobilfunkEntry[]>([]);
   const [mobilfunkOpen, setMobilfunkOpen] = useState(false);
+  const mfKeyRef = useRef(0);
 
   // Section 5: Notizen
   const [notes, setNotes] = useState("");
@@ -136,7 +135,7 @@ export function OrderCreateForm({ articles }: { articles: Article[] }) {
     setMobilfunkItems((prev) => [
       ...prev,
       {
-        _key: ++mfKeyCounter,
+        _key: ++mfKeyRef.current,
         type: "PHONE_AND_SIM",
         simType: "SIM",
         tariff: "STANDARD",

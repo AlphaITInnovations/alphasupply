@@ -12,6 +12,15 @@ export async function markItemOrdered(data: {
   orderedBy: string;
 }) {
   try {
+    // Guard against double-ordering
+    const existing = await db.orderItem.findUnique({
+      where: { id: data.orderItemId },
+      select: { orderedAt: true, articleId: true, quantity: true },
+    });
+    if (existing?.orderedAt) {
+      return { error: "Artikel wurde bereits bestellt." };
+    }
+
     await db.orderItem.update({
       where: { id: data.orderItemId },
       data: {
@@ -23,14 +32,10 @@ export async function markItemOrdered(data: {
     });
 
     // If article exists, increment incomingStock
-    const item = await db.orderItem.findUnique({
-      where: { id: data.orderItemId },
-      select: { articleId: true, quantity: true },
-    });
-    if (item?.articleId) {
+    if (existing?.articleId) {
       await db.article.update({
-        where: { id: item.articleId },
-        data: { incomingStock: { increment: item.quantity } },
+        where: { id: existing.articleId },
+        data: { incomingStock: { increment: existing.quantity } },
       });
     }
 

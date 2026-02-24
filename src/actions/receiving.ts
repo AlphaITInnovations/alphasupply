@@ -26,11 +26,11 @@ export async function receiveOrderItem(data: {
         throw new Error("Artikel wurde bereits vollständig empfangen.");
       }
 
-      // Update OrderItem receivedQty
+      // Update OrderItem receivedQty (increment, not overwrite)
       await tx.orderItem.update({
         where: { id: data.orderItemId },
         data: {
-          receivedQty: data.quantity,
+          receivedQty: { increment: data.quantity },
           receivedAt: new Date(),
         },
       });
@@ -48,12 +48,13 @@ export async function receiveOrderItem(data: {
         },
       });
 
-      // Update article: currentStock up, incomingStock down
+      // Update article: currentStock up, incomingStock down (with guard)
+      const article = await tx.article.findUniqueOrThrow({ where: { id: data.articleId } });
       await tx.article.update({
         where: { id: data.articleId },
         data: {
           currentStock: { increment: data.quantity },
-          incomingStock: { decrement: data.quantity },
+          incomingStock: { decrement: Math.min(data.quantity, article.incomingStock) },
         },
       });
 

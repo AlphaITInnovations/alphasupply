@@ -343,7 +343,6 @@ export async function receiveGoods(data: {
     revalidatePath("/artikelverwaltung");
     revalidatePath(`/artikelverwaltung/${articleId}`);
     revalidatePath("/lager");
-    revalidatePath("/lager");
     revalidatePath("/wareneingang");
     revalidatePath("/");
     return { success: true };

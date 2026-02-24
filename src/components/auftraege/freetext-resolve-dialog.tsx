@@ -102,7 +102,7 @@ export function FreetextResolveDialog({
                 type="button"
                 onClick={() => handleAssign(article.id)}
                 disabled={isPending}
-                className="flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-left transition-colors hover:bg-muted/50 hover:border-border/50 disabled:opacity-50"
+                className="group flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-left transition-colors hover:bg-muted/50 hover:border-border/50 disabled:opacity-50"
               >
                 <span className="font-mono text-xs text-muted-foreground w-20 shrink-0">
                   {article.sku}

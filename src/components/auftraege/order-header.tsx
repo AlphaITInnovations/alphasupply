@@ -40,26 +40,32 @@ function getStepState(
   order: OrderDetailFull,
   stepKey: string
 ): "completed" | "current" | "pending" {
-  const allPicked = order.items.every((i) => i.pickedQty >= i.quantity);
-  const allMfSetup = order.mobilfunk.every((mf) => mf.setupDone);
+  const hasItems = order.items.length > 0;
+  const allPicked = hasItems
+    ? order.items.every((i) => i.pickedQty >= i.quantity || !i.article)
+    : false;
+  const hasMobilfunk = order.mobilfunk.length > 0;
+  const allMfSetup = hasMobilfunk
+    ? order.mobilfunk.every((mf) => mf.setupDone)
+    : true;
   const isShipped = !!order.trackingNumber || !!order.shippedAt;
   const setupDone = !!order.setupDoneAt;
-  const hasItems = order.items.length > 0 || order.mobilfunk.length > 0;
+  const hasAnyContent = hasItems || hasMobilfunk;
 
   switch (stepKey) {
     case "commission":
-      if (allPicked && hasItems) return "completed";
+      if (allPicked && hasAnyContent) return "completed";
       if (order.items.some((i) => i.pickedQty > 0)) return "current";
-      if (order.computedStatus === "NEW" && hasItems) return "current";
-      return hasItems ? "current" : "completed";
+      if (order.computedStatus === "NEW" && hasAnyContent) return "current";
+      return hasAnyContent ? "current" : "completed";
     case "setup":
       if (setupDone || isShipped) return "completed";
-      if (allPicked && allMfSetup && hasItems) return "current";
-      if (allPicked && hasItems) return "current";
+      if (allPicked && allMfSetup && hasAnyContent) return "current";
+      if (allPicked && hasAnyContent) return "current";
       return "pending";
     case "shipping":
       if (isShipped) return "completed";
-      if (setupDone || (allPicked && allMfSetup && hasItems))
+      if (setupDone || (allPicked && allMfSetup && hasAnyContent))
         return "current";
       return "pending";
     default:
