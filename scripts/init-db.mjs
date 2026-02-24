@@ -399,6 +399,49 @@ async function runMigrations(client) {
     await client.query(`ALTER TABLE "Order" ADD COLUMN "setupDoneBy" TEXT`);
     console.log("Migration 14: Added commission/setup columns to Order.");
   }
+
+  // Migration 15: Create Inventory + InventoryItem tables
+  const hasInventoryTable = await client.query(
+    `SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'Inventory')`
+  );
+  if (!hasInventoryTable.rows[0].exists) {
+    await client.query(`CREATE TYPE "InventoryStatus" AS ENUM ('IN_PROGRESS', 'COMPLETED', 'CANCELLED')`).catch(() => {});
+    await client.query(`
+      CREATE TABLE "Inventory" (
+        "id" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "status" "InventoryStatus" NOT NULL DEFAULT 'IN_PROGRESS',
+        "startedBy" TEXT NOT NULL,
+        "completedAt" TIMESTAMP(3),
+        "notes" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "Inventory_pkey" PRIMARY KEY ("id")
+      );
+      CREATE INDEX "Inventory_status_idx" ON "Inventory"("status");
+      CREATE INDEX "Inventory_createdAt_idx" ON "Inventory"("createdAt");
+
+      CREATE TABLE "InventoryItem" (
+        "id" TEXT NOT NULL,
+        "inventoryId" TEXT NOT NULL,
+        "articleId" TEXT NOT NULL,
+        "expectedQty" INTEGER NOT NULL,
+        "countedQty" INTEGER,
+        "difference" INTEGER,
+        "checked" BOOLEAN NOT NULL DEFAULT false,
+        "checkedBy" TEXT,
+        "checkedAt" TIMESTAMP(3),
+        "notes" TEXT,
+        CONSTRAINT "InventoryItem_pkey" PRIMARY KEY ("id")
+      );
+      CREATE INDEX "InventoryItem_inventoryId_idx" ON "InventoryItem"("inventoryId");
+      CREATE INDEX "InventoryItem_articleId_idx" ON "InventoryItem"("articleId");
+      CREATE UNIQUE INDEX "InventoryItem_inventoryId_articleId_key" ON "InventoryItem"("inventoryId", "articleId");
+      ALTER TABLE "InventoryItem" ADD CONSTRAINT "InventoryItem_inventoryId_fkey" FOREIGN KEY ("inventoryId") REFERENCES "Inventory"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+      ALTER TABLE "InventoryItem" ADD CONSTRAINT "InventoryItem_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    `);
+    console.log("Migration 15: Created Inventory + InventoryItem tables.");
+  }
 }
 
 main().catch((err) => {

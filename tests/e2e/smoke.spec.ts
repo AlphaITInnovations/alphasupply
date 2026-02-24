@@ -79,4 +79,18 @@ test.describe("AlphaSupply Smoke Tests", () => {
     const submitBtn = page.getByRole("button", { name: "Auftrag erstellen" });
     await expect(submitBtn).toBeDisabled();
   });
+
+  test("Inventur page loads with statistics", async ({ page }) => {
+    await page.goto(`${BASE}/inventur`);
+    await expect(page.getByRole("heading", { name: "Inventur" })).toBeVisible();
+    await expect(page.getByText("Artikel gesamt")).toBeVisible();
+    await expect(page.getByText("Lagerwert")).toBeVisible();
+  });
+
+  test("Inventur - new inventory dialog opens", async ({ page }) => {
+    await page.goto(`${BASE}/inventur`);
+    await expect(page.getByRole("heading", { name: "Inventur" })).toBeVisible();
+    const newBtn = page.getByRole("button", { name: /Neue Inventur|Laufende Inventur/ });
+    await expect(newBtn).toBeVisible();
+  });
 });
