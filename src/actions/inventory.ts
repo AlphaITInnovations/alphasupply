@@ -15,6 +15,43 @@ import {
 
 // ─── ARTIKEL ─────────────────────────────────────────────
 
+/** Quick-create article from plain object (auto-generates SKU) */
+export async function quickCreateArticle(data: {
+  name: string;
+  category: "HIGH_TIER" | "MID_TIER" | "LOW_TIER";
+  unit?: string;
+  minStockLevel?: number;
+}) {
+  try {
+    // Auto-generate next SKU
+    const latest = await db.article.findFirst({
+      where: { sku: { startsWith: "ART-" } },
+      orderBy: { sku: "desc" },
+      select: { sku: true },
+    });
+    const num = latest ? parseInt(latest.sku.replace("ART-", ""), 10) + 1 : 1;
+    const sku = `ART-${String(num).padStart(3, "0")}`;
+
+    const article = await db.article.create({
+      data: {
+        name: data.name,
+        sku,
+        category: data.category,
+        unit: data.unit || "Stk",
+        minStockLevel: data.minStockLevel ?? 0,
+      },
+    });
+    revalidatePath("/artikelverwaltung");
+    revalidatePath("/lager");
+    return { success: true as const, article: { id: article.id, name: article.name, sku: article.sku, category: article.category, unit: article.unit } };
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message.includes("Unique constraint")) {
+      return { success: false as const, error: "Artikelnummer existiert bereits." };
+    }
+    return { success: false as const, error: "Fehler beim Erstellen des Artikels." };
+  }
+}
+
 export async function createArticle(formData: FormData) {
   const raw = Object.fromEntries(formData);
   const parsed = createArticleSchema.safeParse(raw);

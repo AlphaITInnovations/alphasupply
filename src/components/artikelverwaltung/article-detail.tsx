@@ -6,11 +6,9 @@ import { useRouter } from "next/navigation";
 import {
   Pencil,
   Star,
-  Plus,
   ArrowLeft,
   Package,
   Truck,
-  Hash,
   History,
 } from "lucide-react";
 import Link from "next/link";
@@ -35,12 +33,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -49,10 +41,9 @@ import {
 } from "@/components/ui/select";
 import {
   articleCategoryLabels,
-  serialNumberStatusLabels,
   stockMovementTypeLabels,
 } from "@/types/inventory";
-import { updateArticle, createSerialNumber } from "@/actions/inventory";
+import { updateArticle } from "@/actions/inventory";
 import { toast } from "sonner";
 
 // ---- Types ----
@@ -124,21 +115,6 @@ const tierBadgeColors: Record<string, string> = {
     "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
 };
 
-const snStatusBadgeColors: Record<string, string> = {
-  IN_STOCK:
-    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
-  RESERVED:
-    "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
-  DEPLOYED:
-    "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700",
-  DEFECTIVE:
-    "bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800",
-  RETURNED:
-    "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
-  DISPOSED:
-    "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
-};
-
 const movementTypeBadgeColors: Record<string, string> = {
   IN: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
   OUT: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800",
@@ -155,8 +131,6 @@ export function ArticleDetail({
   article: Article;
   groupSuggestions: GroupSuggestions;
 }) {
-  const isHighTier = article.category === "HIGH_TIER";
-
   return (
     <div className="space-y-6">
       {/* Back link */}
@@ -166,7 +140,7 @@ export function ArticleDetail({
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Zur Artikelverwaltung
+          Zur Artikelliste
         </Link>
       </div>
 
@@ -202,14 +176,6 @@ export function ArticleDetail({
         <LieferantenCard suppliers={article.articleSuppliers} />
       )}
 
-      {/* Seriennummern (HIGH_TIER only) */}
-      {isHighTier && (
-        <SeriennummernCard
-          serialNumbers={article.serialNumbers}
-          articleId={article.id}
-        />
-      )}
-
       {/* Bewegungshistorie */}
       <BewegungshistorieCard movements={article.stockMovements} />
     </div>
@@ -225,7 +191,7 @@ function StammdatenCard({
   article: Article;
   groupSuggestions: GroupSuggestions;
 }) {
-  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const router = useRouter();
 
   const [state, formAction, isPending] = useActionState(
@@ -242,7 +208,7 @@ function StammdatenCard({
   useEffect(() => {
     if (state?.success) {
       toast.success("Artikel aktualisiert");
-      setEditOpen(false);
+      setEditing(false);
       router.refresh();
     }
     if (state?.error) {
@@ -275,25 +241,36 @@ function StammdatenCard({
   ];
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Stammdaten
-          </CardTitle>
-          <CardAction>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Package className="h-4 w-4" />
+          Stammdaten
+        </CardTitle>
+        <CardAction>
+          {!editing ? (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setEditOpen(true)}
+              onClick={() => setEditing(true)}
             >
               <Pencil className="mr-2 h-3.5 w-3.5" />
               Bearbeiten
             </Button>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setEditing(false)}
+            >
+              Abbrechen
+            </Button>
+          )}
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        {!editing ? (
+          /* ── View mode ── */
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {fields.map((field) => (
               <div key={field.label} className="space-y-1">
@@ -308,15 +285,8 @@ function StammdatenCard({
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Edit Dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Artikel bearbeiten</DialogTitle>
-          </DialogHeader>
+        ) : (
+          /* ── Edit mode (inline) ── */
           <form action={formAction} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -420,7 +390,7 @@ function StammdatenCard({
               <Label htmlFor="edit-avgPurchasePrice">
                 Durchschn. Einkaufspreis (netto)
               </Label>
-              <div className="relative">
+              <div className="relative max-w-xs">
                 <Input
                   id="edit-avgPurchasePrice"
                   name="avgPurchasePrice"
@@ -467,20 +437,20 @@ function StammdatenCard({
 
             <div className="flex gap-3 pt-2">
               <Button type="submit" disabled={isPending}>
-                {isPending ? "Speichern..." : "Aktualisieren"}
+                {isPending ? "Speichern..." : "Speichern"}
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setEditOpen(false)}
+                onClick={() => setEditing(false)}
               >
                 Abbrechen
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
-    </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -558,148 +528,6 @@ function LieferantenCard({
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-// ---- Seriennummern Card ----
-
-function SeriennummernCard({
-  serialNumbers,
-  articleId,
-}: {
-  serialNumbers: SerialNumber[];
-  articleId: string;
-}) {
-  const [addOpen, setAddOpen] = useState(false);
-  const router = useRouter();
-
-  const [state, formAction, isPending] = useActionState(
-    async (
-      _prev: { error?: string; success?: boolean } | null,
-      formData: FormData
-    ) => {
-      formData.set("articleId", articleId);
-      return createSerialNumber(formData);
-    },
-    null
-  );
-
-  useEffect(() => {
-    if (state?.success) {
-      toast.success("Seriennummer erfasst");
-      setAddOpen(false);
-      router.refresh();
-    }
-    if (state?.error) {
-      toast.error(state.error);
-    }
-  }, [state, router]);
-
-  return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Hash className="h-4 w-4" />
-            Seriennummern
-            <Badge variant="secondary" className="ml-1 text-[10px]">
-              {serialNumbers.length}
-            </Badge>
-          </CardTitle>
-          <CardAction>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAddOpen(true)}
-            >
-              <Plus className="mr-2 h-3.5 w-3.5" />
-              Seriennummer hinzufuegen
-            </Button>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          {serialNumbers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Keine Seriennummern vorhanden.
-            </p>
-          ) : (
-            <div className="overflow-hidden rounded-lg border border-border/50">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border/50 bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="py-2 text-xs font-semibold uppercase tracking-wider">
-                      Seriennummer
-                    </TableHead>
-                    <TableHead className="py-2 text-xs font-semibold uppercase tracking-wider">
-                      Status
-                    </TableHead>
-                    <TableHead className="py-2 text-center text-xs font-semibold uppercase tracking-wider">
-                      Gebraucht
-                    </TableHead>
-                    <TableHead className="py-2 text-xs font-semibold uppercase tracking-wider">
-                      Notizen
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {serialNumbers.map((sn) => (
-                    <TableRow key={sn.id} className="border-border/30">
-                      <TableCell>
-                        <span className="font-mono text-xs font-medium">
-                          {sn.serialNo}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold ${snStatusBadgeColors[sn.status] ?? ""}`}
-                        >
-                          {serialNumberStatusLabels[sn.status]}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center text-sm">
-                        {sn.isUsed ? "Ja" : "Nein"}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs text-muted-foreground">
-                          {sn.notes || "\u2013"}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Add Serial Number Dialog */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Seriennummer erfassen</DialogTitle>
-          </DialogHeader>
-          <form action={formAction} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="add-serialNo">Seriennummer *</Label>
-              <Input id="add-serialNo" name="serialNo" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="add-notes">Notizen</Label>
-              <Input id="add-notes" name="notes" />
-            </div>
-
-            {state?.error && (
-              <p className="text-sm text-destructive">{state.error}</p>
-            )}
-
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? "Wird gespeichert..." : "Seriennummer speichern"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
   );
 }
 

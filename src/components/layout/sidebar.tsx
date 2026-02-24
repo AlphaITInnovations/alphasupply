@@ -54,7 +54,7 @@ const navSections: NavSection[] = [
   {
     items: [
       { name: "Lager", href: "/lager", icon: Warehouse },
-      { name: "Artikelverwaltung", href: "/artikelverwaltung", icon: Package },
+      { name: "Artikelliste", href: "/artikelverwaltung", icon: Package },
       { name: "Wareneingang", href: "/wareneingang", icon: PackageCheck },
     ],
   },

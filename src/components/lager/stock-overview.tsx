@@ -46,7 +46,7 @@ import {
   articleCategoryLabels,
   serialNumberStatusLabels,
 } from "@/types/inventory";
-import { receiveGoods } from "@/actions/inventory";
+import { receiveGoods, quickCreateArticle } from "@/actions/inventory";
 import { toast } from "sonner";
 
 type SerialNumberInfo = {
@@ -429,7 +429,7 @@ export function StockOverview({
 
 /** Manual stock-in dialog for adding stock without an order */
 function ManualStockInDialog({
-  allArticles,
+  allArticles: initialArticles,
 }: {
   allArticles: ArticleOption[];
 }) {
@@ -438,11 +438,17 @@ function ManualStockInDialog({
   const [isPending, startTransition] = useTransition();
   const [selectedArticleId, setSelectedArticleId] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [reason, setReason] = useState("");
   const [serialNumbers, setSerialNumbers] = useState<
     { serialNo: string; isUsed: boolean }[]
   >([]);
 
+  // Inline article creation
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newCategory, setNewCategory] = useState<string>("MID_TIER");
+  const [localArticles, setLocalArticles] = useState<ArticleOption[]>(initialArticles);
+
+  const allArticles = localArticles;
   const selectedArticle = allArticles.find((a) => a.id === selectedArticleId);
   const isHighTier = selectedArticle?.category === "HIGH_TIER";
 
@@ -471,8 +477,49 @@ function ManualStockInDialog({
   function resetForm() {
     setSelectedArticleId("");
     setQuantity(1);
-    setReason("");
     setSerialNumbers([]);
+    setShowCreateForm(false);
+    setNewName("");
+    setNewCategory("MID_TIER");
+    setLocalArticles(initialArticles);
+  }
+
+  function handleCreateArticle() {
+    if (!newName.trim()) {
+      toast.error("Bitte Artikelname eingeben.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await quickCreateArticle({
+        name: newName.trim(),
+        category: newCategory as "HIGH_TIER" | "MID_TIER" | "LOW_TIER",
+      });
+      if (result.success) {
+        toast.success(`Artikel "${result.article.name}" angelegt (${result.article.sku})`);
+        const newArt: ArticleOption = {
+          id: result.article.id,
+          name: result.article.name,
+          sku: result.article.sku,
+          category: result.article.category,
+          unit: result.article.unit,
+        };
+        setLocalArticles((prev) => [...prev, newArt].sort((a, b) => a.name.localeCompare(b.name, "de")));
+        setSelectedArticleId(result.article.id);
+        setShowCreateForm(false);
+        setNewName("");
+        setNewCategory("MID_TIER");
+        // Set up serial numbers if HIGH_TIER
+        if (result.article.category === "HIGH_TIER") {
+          setSerialNumbers(
+            Array.from({ length: quantity }, () => ({ serialNo: "", isUsed: false }))
+          );
+        } else {
+          setSerialNumbers([]);
+        }
+      } else {
+        toast.error(result.error ?? "Fehler beim Anlegen.");
+      }
+    });
   }
 
   function handleSubmit() {
@@ -489,7 +536,7 @@ function ManualStockInDialog({
       const result = await receiveGoods({
         articleId: selectedArticleId,
         quantity,
-        reason: reason || "Manueller Wareneingang",
+        reason: "Manueller Wareneingang",
         serialNumbers: isHighTier ? serialNumbers : undefined,
       });
       if (result.success) {
@@ -546,6 +593,66 @@ function ManualStockInDialog({
             </Select>
           </div>
 
+          {/* Inline: Create new article */}
+          {!showCreateForm ? (
+            <button
+              type="button"
+              onClick={() => setShowCreateForm(true)}
+              className="text-xs text-primary hover:underline"
+            >
+              + Neuen Artikel anlegen
+            </button>
+          ) : (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
+              <p className="text-xs font-semibold text-primary">Neuen Artikel anlegen</p>
+              <div>
+                <Label className="text-xs">Name *</Label>
+                <Input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Artikelbezeichnung..."
+                  className="mt-1 h-8 text-sm"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Kategorie *</Label>
+                <Select value={newCategory} onValueChange={setNewCategory}>
+                  <SelectTrigger className="mt-1 h-8 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(articleCategoryLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value} className="text-sm">
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleCreateArticle}
+                  disabled={isPending || !newName.trim()}
+                >
+                  {isPending ? "Wird angelegt..." : "Anlegen"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setNewName("");
+                    setNewCategory("MID_TIER");
+                  }}
+                >
+                  Abbrechen
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Quantity */}
           <div>
             <Label className="text-xs">Menge *</Label>
@@ -555,17 +662,6 @@ function ManualStockInDialog({
               value={quantity}
               onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
               className="mt-1 w-24"
-            />
-          </div>
-
-          {/* Reason */}
-          <div>
-            <Label className="text-xs">Grund (optional)</Label>
-            <Input
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="z.B. Nachlieferung, Retoure..."
-              className="mt-1"
             />
           </div>
 
