@@ -9,7 +9,7 @@ export async function setTechnicianName(orderId: string, name: string) {
     where: { id: orderId },
     data: { technicianName: name },
   });
-  revalidatePath(`/techniker/${orderId}`);
+  revalidatePath(`/auftraege/${orderId}`);
 }
 
 export async function pickItem(data: {
@@ -72,11 +72,9 @@ export async function pickItem(data: {
     });
 
     await syncOrderStatus(data.orderId);
-    revalidatePath(`/techniker/${data.orderId}`);
-    revalidatePath("/techniker");
-    revalidatePath("/orders");
-    revalidatePath("/inventory/stock");
-    revalidatePath("/inventory/movements");
+    revalidatePath(`/auftraege/${data.orderId}`);
+    revalidatePath("/auftraege");
+    revalidatePath("/lager");
     revalidatePath("/");
     return { success: true };
   } catch (e: unknown) {
@@ -137,10 +135,9 @@ export async function unpickItem(data: {
     });
 
     await syncOrderStatus(data.orderId);
-    revalidatePath(`/techniker/${data.orderId}`);
-    revalidatePath("/techniker");
-    revalidatePath("/orders");
-    revalidatePath("/inventory/stock");
+    revalidatePath(`/auftraege/${data.orderId}`);
+    revalidatePath("/auftraege");
+    revalidatePath("/lager");
     revalidatePath("/");
     return { success: true };
   } catch (e: unknown) {
@@ -169,9 +166,9 @@ export async function setupMobilfunk(data: {
     });
 
     await syncOrderStatus(data.orderId);
-    revalidatePath(`/techniker/${data.orderId}`);
-    revalidatePath("/techniker");
-    revalidatePath("/orders");
+    revalidatePath(`/auftraege/${data.orderId}`);
+    revalidatePath("/auftraege");
+    revalidatePath("/");
     return { success: true };
   } catch {
     return { error: "Fehler beim Speichern der Mobilfunk-Einrichtung." };
@@ -192,11 +189,35 @@ export async function resetMobilfunkSetup(mobilfunkId: string, orderId: string) 
     });
 
     await syncOrderStatus(orderId);
-    revalidatePath(`/techniker/${orderId}`);
-    revalidatePath("/techniker");
+    revalidatePath(`/auftraege/${orderId}`);
+    revalidatePath("/auftraege");
+    revalidatePath("/");
     return { success: true };
   } catch {
     return { error: "Fehler beim Zurücksetzen." };
+  }
+}
+
+export async function finishSetup(data: {
+  orderId: string;
+  setupBy: string;
+}) {
+  try {
+    await db.order.update({
+      where: { id: data.orderId },
+      data: {
+        setupDoneAt: new Date(),
+        setupDoneBy: data.setupBy,
+      },
+    });
+
+    await syncOrderStatus(data.orderId);
+    revalidatePath(`/auftraege/${data.orderId}`);
+    revalidatePath("/auftraege");
+    revalidatePath("/");
+    return { success: true };
+  } catch {
+    return { error: "Fehler beim Abschließen der Einrichtung." };
   }
 }
 
@@ -217,10 +238,9 @@ export async function finishTechWork(data: {
     });
 
     await syncOrderStatus(data.orderId);
-    revalidatePath(`/techniker/${data.orderId}`);
-    revalidatePath("/techniker");
-    revalidatePath("/orders");
-    revalidatePath(`/orders/${data.orderId}`);
+    revalidatePath(`/auftraege/${data.orderId}`);
+    revalidatePath("/auftraege");
+    revalidatePath("/");
     return { success: true };
   } catch {
     return { error: "Fehler beim Abschließen der Techniker-Arbeit." };

@@ -79,7 +79,7 @@ export async function createOrder(data: {
       include: { items: true, mobilfunk: true },
     });
 
-    revalidatePath("/orders");
+    revalidatePath("/auftraege");
     revalidatePath("/");
     return { success: true, order };
   } catch (e: unknown) {
@@ -98,8 +98,8 @@ export async function updateOrderStatus(id: string, status: string) {
         status: status as "NEW" | "IN_COMMISSION" | "IN_SETUP" | "READY_TO_SHIP" | "SHIPPED" | "COMPLETED" | "CANCELLED",
       },
     });
-    revalidatePath("/orders");
-    revalidatePath(`/orders/${id}`);
+    revalidatePath("/auftraege");
+    revalidatePath(`/auftraege/${id}`);
     revalidatePath("/");
     return { success: true };
   } catch {
@@ -129,7 +129,7 @@ export async function toggleMobilfunkDelivered(id: string, delivered: boolean) {
       where: { id },
       data: { delivered },
     });
-    revalidatePath("/orders");
+    revalidatePath("/auftraege");
     return { success: true };
   } catch {
     return { error: "Fehler beim Aktualisieren." };
@@ -152,8 +152,8 @@ export async function resolveFreetextItem(orderItemId: string, articleId: string
       data: { articleId, freeText: null },
     });
 
-    revalidatePath("/orders");
-    revalidatePath(`/orders/${item.orderId}`);
+    revalidatePath("/auftraege");
+    revalidatePath(`/auftraege/${item.orderId}`);
     revalidatePath("/");
     return { success: true };
   } catch {

@@ -25,7 +25,7 @@ export async function createArticle(formData: FormData) {
 
   try {
     const article = await db.article.create({ data: parsed.data });
-    revalidatePath("/inventory");
+    revalidatePath("/artikelverwaltung");
     return { success: true, article };
   } catch (e: unknown) {
     if (e instanceof Error && e.message.includes("Unique constraint")) {
@@ -47,8 +47,8 @@ export async function updateArticle(formData: FormData) {
 
   try {
     const article = await db.article.update({ where: { id }, data });
-    revalidatePath("/inventory");
-    revalidatePath(`/inventory/${id}`);
+    revalidatePath("/artikelverwaltung");
+    revalidatePath(`/artikelverwaltung/${id}`);
     return { success: true, article };
   } catch {
     return { error: "Fehler beim Aktualisieren des Artikels." };
@@ -58,7 +58,7 @@ export async function updateArticle(formData: FormData) {
 export async function deleteArticle(id: string) {
   try {
     await db.article.update({ where: { id }, data: { isActive: false } });
-    revalidatePath("/inventory");
+    revalidatePath("/artikelverwaltung");
     return { success: true };
   } catch {
     return { error: "Fehler beim Löschen des Artikels." };
@@ -116,9 +116,9 @@ export async function createStockMovement(formData: FormData) {
       });
     });
 
-    revalidatePath("/inventory");
-    revalidatePath(`/inventory/${articleId}`);
-    revalidatePath("/inventory/movements");
+    revalidatePath("/artikelverwaltung");
+    revalidatePath(`/artikelverwaltung/${articleId}`);
+    revalidatePath("/lager");
     revalidatePath("/");
     return { success: true };
   } catch (e: unknown) {
@@ -141,7 +141,7 @@ export async function createSerialNumber(formData: FormData) {
 
   try {
     await db.serialNumber.create({ data: parsed.data });
-    revalidatePath(`/inventory/${parsed.data.articleId}`);
+    revalidatePath(`/artikelverwaltung/${parsed.data.articleId}`);
     return { success: true };
   } catch (e: unknown) {
     if (e instanceof Error && e.message.includes("Unique constraint")) {
@@ -161,7 +161,7 @@ export async function updateSerialNumberStatus(
       where: { id },
       data: { status: status as "IN_STOCK" | "RESERVED" | "DEPLOYED" | "DEFECTIVE" | "RETURNED" | "DISPOSED" },
     });
-    revalidatePath(`/inventory/${articleId}`);
+    revalidatePath(`/artikelverwaltung/${articleId}`);
     return { success: true };
   } catch {
     return { error: "Fehler beim Aktualisieren der Seriennummer." };
@@ -180,7 +180,7 @@ export async function createWarehouseLocation(formData: FormData) {
 
   try {
     await db.warehouseLocation.create({ data: parsed.data });
-    revalidatePath("/inventory/locations");
+    revalidatePath("/lager");
     return { success: true };
   } catch (e: unknown) {
     if (e instanceof Error && e.message.includes("Unique constraint")) {
@@ -196,7 +196,7 @@ export async function deleteWarehouseLocation(id: string) {
       where: { id },
       data: { isActive: false },
     });
-    revalidatePath("/inventory/locations");
+    revalidatePath("/lager");
     return { success: true };
   } catch {
     return { error: "Fehler beim Löschen des Lagerorts." };
@@ -215,7 +215,7 @@ export async function createSupplier(formData: FormData) {
 
   try {
     await db.supplier.create({ data: parsed.data });
-    revalidatePath("/inventory/suppliers");
+    revalidatePath("/lieferanten");
     return { success: true };
   } catch {
     return { error: "Fehler beim Erstellen des Lieferanten." };
@@ -234,7 +234,7 @@ export async function updateSupplier(formData: FormData) {
 
   try {
     await db.supplier.update({ where: { id }, data: parsed.data });
-    revalidatePath("/inventory/suppliers");
+    revalidatePath("/lieferanten");
     return { success: true };
   } catch {
     return { error: "Fehler beim Aktualisieren des Lieferanten." };
@@ -247,7 +247,7 @@ export async function deleteSupplier(id: string) {
       where: { id },
       data: { isActive: false },
     });
-    revalidatePath("/inventory/suppliers");
+    revalidatePath("/lieferanten");
     return { success: true };
   } catch {
     return { error: "Fehler beim Löschen des Lieferanten." };
@@ -303,11 +303,11 @@ export async function receiveGoods(data: {
       }
     });
 
-    revalidatePath("/inventory");
-    revalidatePath(`/inventory/${articleId}`);
-    revalidatePath("/inventory/stock");
-    revalidatePath("/inventory/movements");
-    revalidatePath("/inventory/receiving");
+    revalidatePath("/artikelverwaltung");
+    revalidatePath(`/artikelverwaltung/${articleId}`);
+    revalidatePath("/lager");
+    revalidatePath("/lager");
+    revalidatePath("/wareneingang");
     revalidatePath("/");
     return { success: true };
   } catch (e: unknown) {
@@ -333,7 +333,7 @@ export async function createArticleSupplier(formData: FormData) {
 
   try {
     await db.articleSupplier.create({ data: parsed.data });
-    revalidatePath("/inventory");
+    revalidatePath("/artikelverwaltung");
     return { success: true };
   } catch (e: unknown) {
     if (e instanceof Error && e.message.includes("Unique constraint")) {

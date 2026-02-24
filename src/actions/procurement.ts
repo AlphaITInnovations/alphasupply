@@ -35,11 +35,11 @@ export async function markItemOrdered(data: {
     }
 
     await syncOrderStatus(data.orderId);
-    revalidatePath("/procurement");
-    revalidatePath("/orders");
-    revalidatePath(`/orders/${data.orderId}`);
-    revalidatePath("/inventory/stock");
-    revalidatePath("/inventory/receiving");
+    revalidatePath("/auftraege");
+    revalidatePath("/auftraege");
+    revalidatePath(`/auftraege/${data.orderId}`);
+    revalidatePath("/lager");
+    revalidatePath("/wareneingang");
     return { success: true };
   } catch {
     return { error: "Fehler beim Markieren als bestellt." };
@@ -64,10 +64,10 @@ export async function markMobilfunkOrdered(data: {
     });
 
     await syncOrderStatus(data.orderId);
-    revalidatePath("/procurement");
-    revalidatePath("/orders");
-    revalidatePath(`/orders/${data.orderId}`);
-    revalidatePath("/inventory/receiving");
+    revalidatePath("/auftraege");
+    revalidatePath("/auftraege");
+    revalidatePath(`/auftraege/${data.orderId}`);
+    revalidatePath("/wareneingang");
     return { success: true };
   } catch {
     return { error: "Fehler beim Markieren als bestellt." };
@@ -82,9 +82,9 @@ export async function finishProcurement(orderId: string) {
     });
 
     await syncOrderStatus(orderId);
-    revalidatePath("/procurement");
-    revalidatePath("/orders");
-    revalidatePath(`/orders/${orderId}`);
+    revalidatePath("/auftraege");
+    revalidatePath("/auftraege");
+    revalidatePath(`/auftraege/${orderId}`);
     return { success: true };
   } catch {
     return { error: "Fehler beim Abschließen der Beschaffung." };

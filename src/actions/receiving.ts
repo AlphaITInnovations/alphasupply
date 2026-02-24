@@ -60,11 +60,11 @@ export async function receiveOrderItem(data: {
     });
 
     await syncOrderStatus(data.orderId);
-    revalidatePath("/inventory/receiving");
-    revalidatePath("/inventory/stock");
-    revalidatePath("/inventory/movements");
-    revalidatePath("/orders");
-    revalidatePath(`/orders/${data.orderId}`);
+    revalidatePath("/wareneingang");
+    revalidatePath("/lager");
+    revalidatePath("/lager");
+    revalidatePath("/auftraege");
+    revalidatePath(`/auftraege/${data.orderId}`);
     revalidatePath("/");
     return { success: true };
   } catch (e: unknown) {
@@ -93,9 +93,9 @@ export async function receiveFreeTextItem(data: {
     });
 
     await syncOrderStatus(data.orderId);
-    revalidatePath("/inventory/receiving");
-    revalidatePath("/orders");
-    revalidatePath(`/orders/${data.orderId}`);
+    revalidatePath("/wareneingang");
+    revalidatePath("/auftraege");
+    revalidatePath(`/auftraege/${data.orderId}`);
     return { success: true };
   } catch {
     return { error: "Fehler beim Wareneingang." };
@@ -116,9 +116,9 @@ export async function receiveMobilfunk(data: {
     });
 
     await syncOrderStatus(data.orderId);
-    revalidatePath("/inventory/receiving");
-    revalidatePath("/orders");
-    revalidatePath(`/orders/${data.orderId}`);
+    revalidatePath("/wareneingang");
+    revalidatePath("/auftraege");
+    revalidatePath(`/auftraege/${data.orderId}`);
     return { success: true };
   } catch {
     return { error: "Fehler beim Wareneingang." };

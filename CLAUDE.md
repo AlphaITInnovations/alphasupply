@@ -3,17 +3,29 @@
 Interne IT Lager-, Bestell- und Auftragsverwaltung der Alpha IT Innovations.
 
 ## Tech Stack
-- **Framework:** Next.js 15 (App Router) + TypeScript
+- **Framework:** Next.js 16 (App Router) + TypeScript
 - **Styling:** Tailwind CSS v4 + shadcn/ui
 - **ORM:** Prisma 7 + PostgreSQL 16
-- **Validation:** Zod
+- **Validation:** Zod v4
 - **Deployment:** Docker + docker-compose via Dokploy
 
 ## Projektstruktur
 - `src/app/` - Next.js Seiten (App Router)
+  - `/` - Dashboard (Aktionsübersicht)
+  - `/auftraege` - Auftragsliste, Anlegen, Detail
+  - `/lager` - Lagerbestand mit Seriennummern
+  - `/artikelverwaltung` - Artikelkatalog (CRUD)
+  - `/wareneingang` - Wareneingang (auftrags- und manuell)
+  - `/lieferanten` - Lieferantenverwaltung
+  - `/api/orders` - REST API für externe Auftragsanlage
 - `src/components/ui/` - shadcn/ui Basis-Komponenten
-- `src/components/layout/` - Layout (Navbar, PageHeader, ThemeToggle)
-- `src/components/inventory/` - Lagerverwaltungs-Komponenten
+- `src/components/layout/` - Sidebar, ThemeToggle, ThemeProvider
+- `src/components/dashboard/` - Dashboard-Komponenten (ActionCards, OrderTable, LowStockAlert)
+- `src/components/auftraege/` - Auftrags-Komponenten (List, Create, Detail, Positions, Procurement, Shipping)
+- `src/components/lager/` - Lager-Komponenten (StockOverview)
+- `src/components/artikelverwaltung/` - Artikelverwaltungs-Komponenten (Catalog, Detail, CreateForm)
+- `src/components/wareneingang/` - Wareneingang-Komponenten
+- `src/components/lieferanten/` - Lieferanten-Komponenten
 - `src/actions/` - Server Actions (Mutationen)
 - `src/queries/` - Daten-Abfragen (Server Components)
 - `src/types/` - Zod-Schemas und TypeScript-Typen
@@ -27,21 +39,21 @@ Interne IT Lager-, Bestell- und Auftragsverwaltung der Alpha IT Innovations.
 - `npx prisma generate` - Prisma Client generieren
 - `npx prisma studio` - DB-Browser
 
-## Artikel-Kategorien
-- **SERIALIZED**: Teure Artikel MIT Seriennummer, IMMER nachbestellen
-- **STANDARD**: Artikel OHNE Seriennummer, nachbestellen pro Auftrag
-- **CONSUMABLE**: Verbrauchsmaterial, nachbestellen wenn leer
+## Artikel-Kategorien (Tier-System)
+- **HIGH_TIER**: Teure Artikel MIT Seriennummer, IMMER nachbestellen (Notebooks, Monitore, Docking Stations)
+- **MID_TIER**: Artikel OHNE Seriennummer, nachbestellen pro Auftrag (Headsets, Tastaturen, Webcams)
+- **LOW_TIER**: Verbrauchsmaterial, NICHT pro Auftrag nachbestellen (Kabel, Adapter, USB-Hubs)
+
+## Auftrags-Workflow
+- **Techniker-Stream:** NEU → KOMMISSIONIERUNG → EINRICHTUNG → VERSANDBEREIT → VERSENDET
+- **Beschaffungs-Stream (parallel):** BESTELLEN → WARENEINGANG
+- **Status:** NEW, IN_COMMISSION, IN_SETUP, READY_TO_SHIP, SHIPPED, COMPLETED, CANCELLED
+- Status wird automatisch berechnet via `computeOrderStatus()` in `src/types/orders.ts`
 
 ## Design
-- Farbschema: Slate/Indigo (Primary oklch(0.55 0.23 264)), horizontale Top-Nav
+- Farbschema: Teal/Zinc, Sidebar-Navigation links (einklappbar)
 - Dark/Light Mode via next-themes
 - UI-Sprache: Deutsch
-
-## Phasen
-- **Phase 1** (aktuell): Lagerverwaltung
-- Phase 2: Auftragsverwaltung (Bestellungen)
-- Phase 3: Beschaffungswesen (Nachbestellungen)
-- Phase 4: Versand-/Liefertracking
 
 ## Infrastruktur
 - **Dokploy Server:** SRV-AI-APPS (10.120.200.57)
